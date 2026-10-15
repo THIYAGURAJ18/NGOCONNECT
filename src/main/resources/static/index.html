@@ -31,7 +31,6 @@
         <a href="javascript:void(0)" data-view="campaigns" onclick="navigateTo('campaigns')">Campaigns</a>
         <a href="javascript:void(0)" data-view="disaster" onclick="navigateTo('disaster')">🚨 Disaster Relief</a>
         <a href="javascript:void(0)" id="nav-dashboard-link" data-view="dashboard" class="hidden" onclick="navigateTo('dashboard')">My Dashboard</a>
-        <a href="javascript:void(0)" id="nav-admin-link" data-view="admin" class="hidden" onclick="navigateTo('admin')">⚙️ Admin</a>
       </nav>
 
       <div class="navbar-actions">
@@ -61,7 +60,6 @@
     <a href="javascript:void(0)" onclick="navigateTo('campaigns'); closeMobileMenu();" class="py-2">🎯 Money Campaigns</a>
     <a href="javascript:void(0)" onclick="navigateTo('disaster'); closeMobileMenu();" class="py-2">🚨 Disaster Relief</a>
     <a href="javascript:void(0)" onclick="navigateTo('dashboard'); closeMobileMenu();" class="py-2">📊 My Dashboard</a>
-    <a href="javascript:void(0)" onclick="navigateTo('admin'); closeMobileMenu();" class="py-2">⚙️ Admin Panel</a>
   </div>
 
   <main>
@@ -112,9 +110,8 @@
             <span class="text-xs" style="color:#94a3b8; font-weight:500;">Quick Role Switcher:</span>
           </div>
           <div class="flex gap-1 flex-wrap">
-            <button class="btn btn-xs" onclick="quickLogin('admin@ngoconnect.com', 'admin123')">🔑 Admin</button>
-            <button class="btn btn-xs" onclick="quickLogin('contributor@demo.com', 'demo123')">🎁 Contributor</button>
             <button class="btn btn-xs" onclick="quickLogin('ngo@helphand.org', 'demo123')">🤝 NGO (Verified)</button>
+            <button class="btn btn-xs" onclick="quickLogin('contributor@demo.com', 'demo123')">🎁 Contributor</button>
             <button class="btn btn-xs" onclick="quickLogin('consumer@orphanage.com', 'demo123')">🏠 Care Center</button>
           </div>
         </div>
@@ -293,13 +290,16 @@
           <h2>🚨 Disaster Relief Command Hub</h2>
           <p class="text-muted">Rapid mobilization for floods, earthquakes, and humanitarian emergencies.</p>
         </div>
-        <button class="btn btn-danger" onclick="openModal('modal-create-disaster')">+ Launch Emergency Relief</button>
+        <div class="flex items-center gap-2">
+          <button id="btn-launch-disaster" class="btn btn-danger hidden" onclick="openModal('modal-create-disaster')">+ Launch Emergency Relief</button>
+          <span id="ngo-only-disaster-notice" class="badge badge-neutral text-xs">🛡️ NGO-Only Broadcast</span>
+        </div>
       </div>
 
       <div class="alert alert-warning mb-4">
         <span class="alert-icon">⚠️</span>
         <div>
-          <strong>Verified NGO Emergency System:</strong> Only verified NGOs can initiate new disaster relief campaigns. Anyone can pledge essential supplies (food packets, blankets, medical kits) or contribute relief funds instantly.
+          <strong>Verified NGO Emergency System:</strong> Only registered NGOs can post emergency relief needs and launch disaster campaigns. Contributors can pledge essential supplies (food packets, drinking water, blankets, medical kits) or contribute relief funds instantly.
         </div>
       </div>
 
@@ -343,21 +343,37 @@
         </div>
 
         <!-- NGO Tabs -->
-        <div class="tabs">
-          <div class="tab active" onclick="this.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); this.classList.add('active'); document.getElementById('ngo-tab-accepted').classList.remove('hidden'); document.getElementById('ngo-tab-matches').classList.add('hidden');">
-            Accepted Donations & Proofs
+        <div class="tabs mb-3">
+          <div id="tab-btn-ngo-available" class="tab active" onclick="switchNgoTab('available')">
+            📦 Available Contributor Posts <span id="ngo-available-count" class="badge badge-primary text-xs" style="margin-left:4px;">0</span>
           </div>
-          <div class="tab" onclick="this.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); this.classList.add('active'); document.getElementById('ngo-tab-accepted').classList.add('hidden'); document.getElementById('ngo-tab-matches').classList.remove('hidden');">
+          <div id="tab-btn-ngo-accepted" class="tab" onclick="switchNgoTab('accepted')">
+            🚚 Accepted Donations & Logistics <span id="ngo-accepted-count" class="badge badge-neutral text-xs" style="margin-left:4px;">0</span>
+          </div>
+          <div id="tab-btn-ngo-matches" class="tab" onclick="switchNgoTab('matches')">
             💡 Smart Matching Suggestions
           </div>
         </div>
 
-        <div id="ngo-tab-accepted">
+        <!-- 1. Available Contributor Posts Tab -->
+        <div id="ngo-tab-available">
+          <div class="alert alert-info mb-3">
+            <span class="alert-icon">📦</span>
+            <div><strong>Incoming Contributor Donations:</strong> Review supplies posted by donors, inspect pickup locations, and accept items for distribution.</div>
+          </div>
+          <div id="ngo-available-donations">
+            <div class="page-loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- 2. Accepted Donations & Proofs Tab -->
+        <div id="ngo-tab-accepted" class="hidden">
           <div id="ngo-accepted-donations">
             <div class="page-loading"><div class="spinner"></div></div>
           </div>
         </div>
 
+        <!-- 3. Smart Matching Suggestions Tab -->
         <div id="ngo-tab-matches" class="hidden">
           <div class="alert alert-info mb-3">
             <span class="alert-icon">💡</span>
@@ -386,74 +402,7 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════════════
-         VIEW: ADMIN PANEL
-         ══════════════════════════════════════════════════════════ -->
-    <section id="view-admin" class="view-section container py-4 hidden animate-fadein">
-      <div class="flex justify-between items-center mb-4">
-        <div>
-          <h2>⚙️ System Administration & Analytics</h2>
-          <p class="text-muted">Platform verification and donation telemetry.</p>
-        </div>
-      </div>
 
-      <!-- Platform KPI Cards -->
-      <div class="stats-grid mb-4">
-        <div class="stat-card">
-          <div class="stat-icon">👥</div>
-          <div id="stat-total-users" class="stat-number">0</div>
-          <div class="stat-label">Total Users</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📦</div>
-          <div id="stat-total-donations" class="stat-number">0</div>
-          <div class="stat-label">Donation Posts</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🎯</div>
-          <div id="stat-total-campaigns" class="stat-number">0</div>
-          <div class="stat-label">Active Campaigns</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">💰</div>
-          <div id="stat-total-raised" class="stat-number">₹0</div>
-          <div class="stat-label">Total Raised</div>
-        </div>
-      </div>
-
-      <div class="grid-2 gap-3 mb-4">
-        <!-- NGO Verification Table -->
-        <div class="card">
-          <h3 class="card-title mb-2">NGO Account Verification Queue</h3>
-          <p class="card-subtitle mb-3">Unverified NGOs cannot launch fundraising or disaster campaigns until approved.</p>
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Organization</th>
-                  <th>Email</th>
-                  <th>City</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="admin-pending-ngos-tbody">
-                <tr><td colspan="5" class="text-center py-2">Loading...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Category Distribution -->
-        <div class="card">
-          <h3 class="card-title mb-2">Donations by Category</h3>
-          <p class="card-subtitle mb-3">Breakdown of community items supplied.</p>
-          <div id="admin-category-breakdown">
-            <div class="page-loading"><div class="spinner"></div></div>
-          </div>
-        </div>
-      </div>
-    </section>
 
   </main>
 
@@ -484,9 +433,8 @@
         <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
           <p class="text-xs text-muted mb-2 font-semibold">1-CLICK DEMO ACCOUNTS:</p>
           <div class="grid-2 gap-1">
-            <button class="btn btn-xs btn-outline" onclick="quickLogin('admin@ngoconnect.com', 'admin123')">🔑 Admin</button>
-            <button class="btn btn-xs btn-outline" onclick="quickLogin('contributor@demo.com', 'demo123')">🎁 Contributor</button>
             <button class="btn btn-xs btn-outline" onclick="quickLogin('ngo@helphand.org', 'demo123')">🤝 NGO (Verified)</button>
+            <button class="btn btn-xs btn-outline" onclick="quickLogin('contributor@demo.com', 'demo123')">🎁 Contributor</button>
             <button class="btn btn-xs btn-outline" onclick="quickLogin('consumer@orphanage.com', 'demo123')">🏠 Care Center</button>
           </div>
         </div>
@@ -502,14 +450,7 @@
         <button class="modal-close" onclick="closeModal('modal-signup')">×</button>
       </div>
       <div class="modal-body">
-        <form onsubmit="event.preventDefault(); signupUser({
-          name: this.name.value,
-          email: this.email.value,
-          password: this.password.value,
-          role: document.getElementById('signup-role').value,
-          city: this.city.value,
-          organizationName: this.organizationName ? this.organizationName.value : null
-        });">
+        <form id="form-signup" onsubmit="event.preventDefault(); handleSignupSubmit(this);">
           <input type="hidden" id="signup-role" value="CONTRIBUTOR" />
           <div class="form-group">
             <label class="form-label">Select Your Role</label>
@@ -529,33 +470,102 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Full Name / Contact Person</label>
-            <input type="text" name="name" class="form-control" required placeholder="e.g. Anand Kumar" />
+          <!-- Contributor Aadhaar Notice -->
+          <div id="contributor-aadhaar-badge" class="alert alert-info mb-3 p-2" style="font-size: 0.85rem;">
+            <span>🛡️</span>
+            <div><strong>UIDAI Aadhaar Verification:</strong> Contributors must enter their 12-digit Aadhaar number and validate via OTP sent to their Aadhaar-registered mobile.</div>
           </div>
 
-          <div id="signup-org-group" class="form-group hidden">
-            <label class="form-label">NGO Organization Name</label>
-            <input type="text" name="organizationName" class="form-control" placeholder="e.g. Hope Child Foundation" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input type="email" name="email" class="form-control" required placeholder="name@example.com" />
-          </div>
-
-          <div class="form-row">
+          <!-- Step 1: User & Aadhaar Input Details -->
+          <div id="signup-fields-step1">
             <div class="form-group">
-              <label class="form-label">Password</label>
-              <input type="password" name="password" class="form-control" required placeholder="Min 6 characters" />
+              <label class="form-label">Full Name / Contact Person <span class="required">*</span></label>
+              <input type="text" id="signup-name" name="name" class="form-control" required placeholder="e.g. Anand Kumar (as in Aadhaar)" />
             </div>
+
+            <div id="signup-org-group" class="form-group hidden">
+              <label class="form-label">NGO Organization Name <span class="required">*</span></label>
+              <input type="text" id="signup-org" name="organizationName" class="form-control" placeholder="e.g. Hope Child Foundation" />
+            </div>
+
             <div class="form-group">
-              <label class="form-label">City</label>
-              <input type="text" name="city" class="form-control" placeholder="e.g. Chennai" />
+              <label class="form-label">Email Address <span class="required">*</span></label>
+              <input type="email" id="signup-email" name="email" class="form-control" required placeholder="name@example.com" />
             </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Password <span class="required">*</span></label>
+                <input type="password" id="signup-password" name="password" class="form-control" required placeholder="Min 6 characters" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">City <span class="required">*</span></label>
+                <input type="text" id="signup-city" name="city" class="form-control" required placeholder="e.g. Chennai" />
+              </div>
+            </div>
+
+            <!-- Contributor-Specific Aadhaar Field -->
+            <div id="signup-aadhaar-group" class="form-group">
+              <label class="form-label">Aadhaar Card Number (12 Digits) <span class="required">*</span></label>
+              <div style="position: relative;">
+                <input type="text" id="signup-aadhaar" name="aadhaarNumber" class="form-control" maxlength="14" placeholder="XXXX XXXX XXXX" style="letter-spacing: 2px; font-weight: 600;" oninput="formatAadhaarInput(this)" />
+                <span id="aadhaar-verify-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1.1rem;">🆔</span>
+              </div>
+              <p class="text-xs text-muted mt-1">Aadhaar is analyzed and verified. An OTP will be dispatched to your UIDAI registered mobile number.</p>
+            </div>
+
+            <!-- Action Button for Contributor: Verify Aadhaar & Send OTP -->
+            <button type="button" id="btn-contributor-send-otp" class="btn btn-primary btn-full" onclick="requestAadhaarOtp()">
+              🔍 Analyze Aadhaar & Send OTP
+            </button>
+
+            <!-- Action Button for NGO / Care Center -->
+            <button type="submit" id="btn-standard-register" class="btn btn-primary btn-full hidden">
+              Register Account
+            </button>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-full">Register Account</button>
+          <!-- Step 2: OTP Validation Box for Contributor -->
+          <div id="signup-aadhaar-otp-step" class="hidden" style="background: var(--surface-2); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border); margin-top: 1rem;">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-1">
+                <span style="font-size: 1.2rem;">📲</span>
+                <strong style="font-size: 0.95rem;">Enter Aadhaar OTP</strong>
+              </div>
+              <span class="badge badge-success text-xs">Aadhaar Validated</span>
+            </div>
+
+            <p class="text-xs text-muted mb-2" id="otp-sent-info">
+              OTP has been dispatched to Aadhaar-registered mobile: <strong id="otp-masked-mobile" class="text-primary">+91 ******XXXX</strong>
+            </p>
+
+            <!-- Test / Sandbox OTP Display -->
+            <div id="otp-demo-banner" class="alert alert-warning mb-3 p-2" style="font-size: 0.85rem; border-left: 3px solid #f59e0b;">
+              <span class="alert-icon">🔔</span>
+              <div>
+                <strong>DEMO OTP CODE:</strong> <span id="otp-demo-code" style="font-weight: 700; font-size: 1.15rem; color: #b45309; letter-spacing: 3px;"></span>
+                <div class="text-xs text-muted">Aadhaar SMS simulation. Enter this code below to validate.</div>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label text-xs uppercase" style="letter-spacing: 0.5px;">Enter 6-Digit OTP <span class="required">*</span></label>
+              <input type="text" id="signup-otp" maxlength="6" class="form-control text-center" placeholder="• • • • • •" style="font-size: 1.4rem; letter-spacing: 6px; font-weight: 700;" />
+            </div>
+
+            <div class="flex gap-2 mb-2">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="cancelAadhaarOtp()" style="flex: 1;">
+                ← Change Details
+              </button>
+              <button type="button" id="btn-verify-otp-submit" class="btn btn-success btn-sm" onclick="verifyAadhaarOtpAndSignup()" style="flex: 2;">
+                ✓ Validate OTP & Sign Up
+              </button>
+            </div>
+
+            <div class="text-center mt-2">
+              <a href="javascript:void(0)" class="text-xs text-primary" onclick="requestAadhaarOtp()">Didn't receive OTP? Resend Code</a>
+            </div>
+          </div>
         </form>
       </div>
     </div>

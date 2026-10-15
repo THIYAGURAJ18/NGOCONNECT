@@ -16,6 +16,8 @@ public interface DonationPostRepository extends JpaRepository<DonationPost, Long
 
     List<DonationPost> findByStatusOrderByCreatedAtDesc(DonationPost.Status status);
 
+    List<DonationPost> findByAcceptedByNgoOrderByAcceptedAtDesc(User ngo);
+
     @Query("SELECT d FROM DonationPost d WHERE " +
            "(:category IS NULL OR LOWER(d.category) = LOWER(:category)) AND " +
            "(:city IS NULL OR LOWER(d.city) = LOWER(:city)) AND " +

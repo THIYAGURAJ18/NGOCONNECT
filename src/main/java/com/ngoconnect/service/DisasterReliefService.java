@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,9 +32,11 @@ public class DisasterReliefService {
         // Create linked money campaign
         Campaign campaign = new Campaign();
         campaign.setCreatedBy(ngo);
-        campaign.setTitle(req.getTitle() + " - Money Fund");
+        campaign.setTitle(req.getTitle() + " - Emergency Fund");
         campaign.setDescription(req.getDescription());
-        campaign.setTargetAmount(req.getMoneyTarget());
+        BigDecimal moneyTarget = req.getMoneyTarget() != null && req.getMoneyTarget().compareTo(java.math.BigDecimal.ZERO) > 0
+            ? req.getMoneyTarget() : java.math.BigDecimal.valueOf(50000);
+        campaign.setTargetAmount(moneyTarget);
         campaign.setCity(req.getCity());
         campaign.setType(Campaign.CampaignType.DISASTER);
         campaign.setDisasterRelief(true);

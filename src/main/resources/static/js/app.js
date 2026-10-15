@@ -11,9 +11,7 @@ const state = {
   donations: [],
   requirements: [],
   campaigns: [],
-  matches: [],
-  adminStats: null,
-  pendingNgos: []
+  matches: []
 };
 
 // ── Toast Utility ──────────────────────────────────────────
@@ -95,7 +93,6 @@ function navigateTo(viewId) {
   else if (viewId === 'campaigns') loadCampaigns();
   else if (viewId === 'disaster') loadDisasterRelief();
   else if (viewId === 'dashboard') loadDashboard();
-  else if (viewId === 'admin') loadAdminView();
 }
 
 function closeMobileMenu() {
@@ -119,7 +116,6 @@ function updateNav() {
   const guestNav = document.getElementById('nav-guest-actions');
   const userNav = document.getElementById('nav-user-actions');
   const userChip = document.getElementById('nav-user-chip');
-  const adminNav = document.getElementById('nav-admin-link');
   const dashboardNav = document.getElementById('nav-dashboard-link');
 
   if (user) {
@@ -131,18 +127,28 @@ function updateNav() {
         <span class="avatar">${initial}</span>
         <span>${user.name}</span>
         <span class="badge badge-primary text-xs">${user.role}</span>
+        ${user.aadhaarVerified ? `<span class="badge badge-success text-xs" style="background:#059669; color:#fff;" title="Aadhaar Verified Contributor">🛡️ Aadhaar Verified</span>` : ''}
       `;
     }
     if (dashboardNav) dashboardNav.classList.remove('hidden');
-    if (adminNav) {
-      if (user.role === 'ADMIN') adminNav.classList.remove('hidden');
-      else adminNav.classList.add('hidden');
-    }
   } else {
     if (guestNav) guestNav.classList.remove('hidden');
     if (userNav) userNav.classList.add('hidden');
     if (dashboardNav) dashboardNav.classList.add('hidden');
-    if (adminNav) adminNav.classList.add('hidden');
+  }
+
+  // Update NGO Emergency Relief Launch Button
+  const isNgo = user && user.role === 'NGO';
+  const disasterBtn = document.getElementById('btn-launch-disaster');
+  const disasterNotice = document.getElementById('ngo-only-disaster-notice');
+  if (disasterBtn) {
+    if (isNgo) {
+      disasterBtn.classList.remove('hidden');
+      if (disasterNotice) disasterNotice.classList.add('hidden');
+    } else {
+      disasterBtn.classList.add('hidden');
+      if (disasterNotice) disasterNotice.classList.remove('hidden');
+    }
   }
 }
 
@@ -156,8 +162,7 @@ async function loginUser(email, password) {
     updateNav();
     closeModal('modal-login');
     showToast(`Welcome back, ${user.name}!`, 'success');
-    if (user.role === 'ADMIN') navigateTo('admin');
-    else navigateTo('dashboard');
+    navigateTo('dashboard');
   } catch (err) {
     showToast(err.message || 'Login failed', 'error');
   }
@@ -187,6 +192,197 @@ async function signupUser(formData) {
   }
 }
 
+// ── Aadhaar Card Verification for Contributor ────────────────
+let currentAadhaarTxnId = null;
+
+function formatAadhaarInput(input) {
+  let val = input.value.replace(/\D/g, '').substring(0, 12);
+  let parts = [];
+  for (let i = 0; i < val.length; i += 4) {
+    parts.push(val.substring(i, i + 4));
+  }
+  input.value = parts.join(' ');
+
+  const icon = document.getElementById('aadhaar-verify-icon');
+  if (icon) {
+    if (val.length === 12) {
+      if (val.startsWith('0') || val.startsWith('1')) {
+        icon.textContent = '❌';
+        icon.title = 'Aadhaar cannot start with 0 or 1';
+      } else {
+        icon.textContent = '✅';
+        icon.title = '12 Digits Ready';
+      }
+    } else {
+      icon.textContent = '🆔';
+      icon.title = 'Enter 12 digits';
+    }
+  }
+}
+
+async function requestAadhaarOtp() {
+  const name = document.getElementById('signup-name')?.value.trim();
+  const email = document.getElementById('signup-email')?.value.trim();
+  const password = document.getElementById('signup-password')?.value;
+  const city = document.getElementById('signup-city')?.value.trim();
+  const rawAadhaar = document.getElementById('signup-aadhaar')?.value.replace(/\s+/g, '');
+
+  if (!name) {
+    showToast('Please enter your full name as in Aadhaar card', 'error');
+    document.getElementById('signup-name')?.focus();
+    return;
+  }
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email address', 'error');
+    document.getElementById('signup-email')?.focus();
+    return;
+  }
+  if (!password || password.length < 6) {
+    showToast('Password must be at least 6 characters', 'error');
+    document.getElementById('signup-password')?.focus();
+    return;
+  }
+  if (!city) {
+    showToast('Please enter your city', 'error');
+    document.getElementById('signup-city')?.focus();
+    return;
+  }
+  if (!rawAadhaar || rawAadhaar.length !== 12) {
+    showToast('Please enter a valid 12-digit Aadhaar number', 'error');
+    document.getElementById('signup-aadhaar')?.focus();
+    return;
+  }
+  if (rawAadhaar.startsWith('0') || rawAadhaar.startsWith('1')) {
+    showToast('Invalid Aadhaar: Cannot start with 0 or 1', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-contributor-send-otp');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></span> Analyzing Aadhaar...`;
+  }
+
+  try {
+    const res = await api('/api/auth/aadhaar/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({
+        aadhaarNumber: rawAadhaar,
+        name: name,
+        email: email
+      })
+    });
+
+    currentAadhaarTxnId = res.txnId;
+
+    // Show OTP Step
+    const otpStep = document.getElementById('signup-aadhaar-otp-step');
+    const maskedMobileEl = document.getElementById('otp-masked-mobile');
+    const demoCodeEl = document.getElementById('otp-demo-code');
+    const demoBanner = document.getElementById('otp-demo-banner');
+
+    if (maskedMobileEl) maskedMobileEl.textContent = res.maskedMobile;
+    if (demoCodeEl) demoCodeEl.textContent = res.demoOtp;
+    if (demoBanner) demoBanner.classList.remove('hidden');
+
+    if (otpStep) {
+      otpStep.classList.remove('hidden');
+      otpStep.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    const otpInput = document.getElementById('signup-otp');
+    if (otpInput) {
+      otpInput.value = '';
+      otpInput.focus();
+    }
+
+    if (btn) btn.classList.add('hidden');
+    showToast(`✅ Aadhaar Validated! OTP sent to ${res.maskedMobile}`, 'success');
+  } catch (err) {
+    showToast(err.message || 'Aadhaar analysis failed', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `🔍 Analyze Aadhaar & Send OTP`;
+    }
+  }
+}
+
+function cancelAadhaarOtp() {
+  const otpStep = document.getElementById('signup-aadhaar-otp-step');
+  const btn = document.getElementById('btn-contributor-send-otp');
+  if (otpStep) otpStep.classList.add('hidden');
+  if (btn) btn.classList.remove('hidden');
+  document.getElementById('signup-aadhaar')?.focus();
+}
+
+async function verifyAadhaarOtpAndSignup() {
+  const otp = document.getElementById('signup-otp')?.value.trim();
+  const name = document.getElementById('signup-name')?.value.trim();
+  const email = document.getElementById('signup-email')?.value.trim();
+  const password = document.getElementById('signup-password')?.value;
+  const city = document.getElementById('signup-city')?.value.trim();
+  const rawAadhaar = document.getElementById('signup-aadhaar')?.value.replace(/\s+/g, '');
+
+  if (!currentAadhaarTxnId) {
+    showToast('Please generate an Aadhaar OTP first', 'error');
+    return;
+  }
+  if (!otp || otp.length !== 6) {
+    showToast('Please enter the 6-digit OTP sent to your registered mobile', 'error');
+    document.getElementById('signup-otp')?.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-verify-otp-submit');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></span> Validating OTP...`;
+  }
+
+  try {
+    const user = await api('/api/auth/aadhaar/verify-signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        txnId: currentAadhaarTxnId,
+        otp: otp,
+        name: name,
+        email: email,
+        password: password,
+        aadhaarNumber: rawAadhaar,
+        city: city
+      })
+    });
+
+    showToast('🎉 Aadhaar Verified & Contributor Account Created! Logging you in...', 'success');
+    await loginUser(email, password);
+    closeModal('modal-signup');
+  } catch (err) {
+    showToast(err.message || 'OTP validation failed', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `✓ Validate OTP & Sign Up`;
+    }
+  }
+}
+
+function handleSignupSubmit(form) {
+  const role = document.getElementById('signup-role')?.value;
+  if (role === 'CONTRIBUTOR') {
+    requestAadhaarOtp();
+  } else {
+    signupUser({
+      name: document.getElementById('signup-name').value,
+      email: document.getElementById('signup-email').value,
+      password: document.getElementById('signup-password').value,
+      role: role,
+      city: document.getElementById('signup-city').value,
+      organizationName: document.getElementById('signup-org') ? document.getElementById('signup-org').value : null
+    });
+  }
+}
+
 async function logoutUser() {
   try {
     await api('/api/auth/logout', { method: 'POST' });
@@ -199,6 +395,18 @@ async function logoutUser() {
 
 // ── Modals Management ──────────────────────────────────────
 function openModal(modalId) {
+  if (modalId === 'modal-create-disaster') {
+    if (!state.user) {
+      showToast('Please log in as a registered NGO to post emergency disaster relief needs.', 'warning');
+      const loginModal = document.getElementById('modal-login');
+      if (loginModal) loginModal.classList.add('open');
+      return;
+    }
+    if (state.user.role !== 'NGO') {
+      showToast('Access restricted: Only registered NGOs can post emergency disaster relief needs.', 'error');
+      return;
+    }
+  }
   const modal = document.getElementById(modalId);
   if (modal) modal.classList.add('open');
 }
@@ -326,22 +534,22 @@ async function loadDonations() {
   const user = state.user;
   if (alertContainer) {
     if (!user) {
-      alertContainer.className = 'alert alert-warning mb-3';
+      alertContainer.className = 'alert alert-info mb-3';
       alertContainer.innerHTML = `
-        <span class="alert-icon">🔒</span>
-        <div><strong>Restricted Access:</strong> Donations posted by contributors are routed directly to registered <strong>NGOs and Orphanages/Care Centers</strong> for collection and distribution. Please <a href="javascript:void(0)" onclick="openModal('modal-login')" class="font-bold underline" style="color:var(--primary-dark);">log in as an NGO or Care Center</a> to view incoming supplies, or log in as a Contributor to post donations.</div>
+        <span class="alert-icon">ℹ️</span>
+        <div><strong>Community Donation Logistics:</strong> Donations posted by contributors are routed directly to registered <strong>NGOs and Orphanages/Care Centers</strong>. <a href="javascript:void(0)" onclick="openModal('modal-login')" class="font-bold underline" style="color:var(--primary-dark);">Sign in as an NGO</a> to accept supplies for distribution, or as a Contributor to post donations.</div>
       `;
     } else if (user.role === 'CONTRIBUTOR') {
       alertContainer.className = 'alert alert-info mb-3';
       alertContainer.innerHTML = `
         <span class="alert-icon">ℹ️</span>
-        <div><strong>Contributor Direct Routing:</strong> Your donation posts are displayed exclusively to verified <strong>NGOs and Orphanages/Care Centers</strong> to arrange collection. Below are your personal contributions.</div>
+        <div><strong>Contributor Direct Routing:</strong> Your donation posts are displayed directly to registered <strong>NGOs</strong> for collection and delivery. Below are community donation posts. You can also view your personal posts in <a href="javascript:void(0)" onclick="navigateTo('dashboard')" class="font-bold underline" style="color:var(--primary-dark);">My Dashboard</a>.</div>
       `;
     } else if (user.role === 'NGO') {
       alertContainer.className = 'alert alert-success mb-3';
       alertContainer.innerHTML = `
         <span class="alert-icon">🤝</span>
-        <div><strong>NGO Dispatch Hub:</strong> Showing available community donations contributed by donors. Review details, accept items, and coordinate collection.</div>
+        <div><strong>NGO Dispatch Hub:</strong> Showing community donations contributed by donors. Review details, accept items, and coordinate collection. Accepted items appear in your NGO Operations Center.</div>
       `;
     } else if (user.role === 'CONSUMER') {
       alertContainer.className = 'alert alert-success mb-3';
@@ -349,29 +557,11 @@ async function loadDonations() {
         <span class="alert-icon">🏠</span>
         <div><strong>Orphanage / Care Center View:</strong> Community donations available for distribution by partner NGOs to your center.</div>
       `;
-    } else if (user.role === 'ADMIN') {
-      alertContainer.className = 'alert alert-info mb-3';
-      alertContainer.innerHTML = `
-        <span class="alert-icon">⚙️</span>
-        <div><strong>Admin Telemetry:</strong> Monitoring incoming community donation posts across all cities.</div>
-      `;
     }
   }
 
   const container = document.getElementById('donations-grid');
   if (!container) return;
-
-  if (!user) {
-    container.innerHTML = `
-      <div class="empty-state w-full">
-        <div class="empty-state-icon">🔒</div>
-        <h3>Donor Posts are Private to NGOs & Orphanages</h3>
-        <p class="mb-3">To ensure safety and direct distribution, items donated by contributors are only displayed to verified NGOs and registered Orphanages.</p>
-        <button class="btn btn-sm btn-primary" onclick="openModal('modal-login')">Sign In to View Donations</button>
-      </div>
-    `;
-    return;
-  }
 
   container.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
 
@@ -400,7 +590,7 @@ function renderDonationsGrid(container, list) {
       <div class="empty-state w-full">
         <div class="empty-state-icon">📦</div>
         <h3>No Donations Available</h3>
-        <p>${isContributor ? 'You have not posted any donations yet. Click "Create Donation Post" to contribute supplies!' : 'No community donation posts available matching these filters.'}</p>
+        <p>${isContributor ? 'You can click "Create Donation Post" to contribute supplies!' : 'No community donation posts available matching these filters.'}</p>
       </div>
     `;
     return;
@@ -421,14 +611,14 @@ function renderDonationsGrid(container, list) {
           <span class="badge badge-primary">${item.category}</span>
           <span class="badge badge-status-${item.status}">${item.status}</span>
         </div>
-        <h3 class="card-title">${item.quantity} ${item.unit || 'units'} (${item.condition} condition)</h3>
-        <p class="card-subtitle mb-2">📍 ${item.city} • by ${item.contributorName}</p>
+        <h3 class="card-title">${item.quantity} ${item.unit || 'units'} (${item.condition || 'GOOD'} condition)</h3>
+        <p class="card-subtitle mb-2">📍 ${item.city} • by <strong>${item.contributorName}</strong></p>
         <p class="text-sm text-muted mb-3">${item.description || 'No description provided.'}</p>
         
         <div class="card-footer flex justify-between items-center">
           <span class="text-xs text-light">${new Date(item.createdAt).toLocaleDateString()}</span>
           ${canAccept ? `
-            <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">Accept for Distribution</button>
+            <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">🤝 Accept for Distribution</button>
           ` : isConsumer ? `
             <span class="text-xs text-primary font-semibold">Available for Care Center</span>
           ` : `
@@ -442,9 +632,10 @@ function renderDonationsGrid(container, list) {
 
 async function acceptDonationPost(id) {
   try {
-    await api(`/api/donations/${id}/status?status=ACCEPTED`, { method: 'PUT' });
-    showToast('Donation accepted successfully! Check your NGO dashboard.', 'success');
-    loadDonations();
+    await api(`/api/donations/${id}/accept`, { method: 'PUT' });
+    showToast('Donation accepted successfully! Checked into your NGO Logistics dashboard.', 'success');
+    if (state.currentView === 'donations') loadDonations();
+    if (state.user && state.user.role === 'NGO') loadNgoDashboard();
   } catch (err) {
     showToast(err.message || 'Failed to accept donation', 'error');
   }
@@ -691,22 +882,8 @@ async function loadHome() {
   try {
     const donContainer = document.getElementById('home-recent-donations');
     if (donContainer) {
-      if (state.user && (state.user.role === 'NGO' || state.user.role === 'CONSUMER' || state.user.role === 'ADMIN')) {
-        const recentDonations = await api('/api/donations');
-        renderDonationsGrid(donContainer, (recentDonations || []).slice(0, 3));
-      } else {
-        donContainer.innerHTML = `
-          <div class="empty-state w-full" style="padding: 2.5rem 1rem;">
-            <div class="empty-state-icon">🔒</div>
-            <h3>Direct Routing to NGOs & Orphanages</h3>
-            <p class="text-sm text-muted mb-3">To maintain safety and direct delivery, donation posts from contributors are exclusively routed to registered NGOs and Orphanages/Care Centers.</p>
-            <div class="flex gap-1 justify-center flex-wrap">
-              <button class="btn btn-sm btn-primary" onclick="openModal('modal-create-donation')">🎁 Post a Donation</button>
-              <button class="btn btn-sm btn-outline" onclick="openModal('modal-login')">Sign In as NGO / Orphanage</button>
-            </div>
-          </div>
-        `;
-      }
+      const recentDonations = await api('/api/donations');
+      renderDonationsGrid(donContainer, (recentDonations || []).slice(0, 3));
     }
 
     const recentReqs = await api('/api/requirements');
@@ -746,8 +923,6 @@ async function loadDashboard() {
   } else if (role === 'CONSUMER') {
     document.getElementById('dash-consumer')?.classList.remove('hidden');
     loadConsumerDashboard();
-  } else if (role === 'ADMIN') {
-    navigateTo('admin');
   }
 }
 
@@ -810,9 +985,79 @@ async function loadContributorDashboard() {
 }
 
 // 2. NGO Dashboard
+function switchNgoTab(tabName) {
+  const tabs = ['available', 'accepted', 'matches'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-btn-ngo-${t}`);
+    const pane = document.getElementById(`ngo-tab-${t}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (pane) pane.classList.toggle('hidden', t !== tabName);
+  });
+}
+
 async function loadNgoDashboard() {
-  loadNgoAcceptedDonations();
-  loadNgoMatches();
+  await Promise.all([
+    loadNgoAvailableDonations(),
+    loadNgoAcceptedDonations(),
+    loadNgoMatches()
+  ]);
+}
+
+async function loadNgoAvailableDonations() {
+  const container = document.getElementById('ngo-available-donations');
+  if (!container) return;
+  container.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
+  try {
+    const all = await api('/api/donations');
+    const available = (all || []).filter(d => d.status === 'POSTED');
+    const countBadge = document.getElementById('ngo-available-count');
+    if (countBadge) countBadge.textContent = available.length;
+
+    if (available.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📦</div>
+          <h3>No Incoming Contributor Donations Right Now</h3>
+          <p>When contributors post supplies (food, clothes, medicine, etc.), they will appear here instantly for you to accept and collect!</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="grid-2 gap-3">
+        ${available.map(item => {
+          const photoHtml = item.photoPath 
+            ? `<img src="${item.photoPath}" alt="${item.category}" class="card-image" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>🎁</div>'"/>`
+            : `<div class="card-img-placeholder">🎁</div>`;
+          return `
+            <div class="card mb-3" style="border-top: 4px solid var(--primary);">
+              ${photoHtml}
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <span class="badge badge-primary">${item.category}</span>
+                  <h3 class="card-title mt-1">${item.quantity} ${item.unit || 'units'} (${item.condition || 'GOOD'} Condition)</h3>
+                  <p class="card-subtitle">📍 <strong>${item.city}</strong> • ${item.address || 'Address provided upon acceptance'}</p>
+                </div>
+                <span class="badge badge-status-POSTED">AVAILABLE</span>
+              </div>
+              <div class="p-2 mb-2" style="background: var(--surface-2); border-radius: var(--radius-sm); font-size: 0.85rem;">
+                <div><strong>Contributor:</strong> ${item.contributorName}</div>
+                ${item.description ? `<div class="text-muted mt-1">"${item.description}"</div>` : ''}
+                <div class="text-xs text-light mt-1">Posted on: ${new Date(item.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div class="card-footer flex justify-between items-center">
+                <span class="text-xs text-muted">Awaiting NGO Pickup</span>
+                <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">🤝 Accept for Distribution</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
 }
 
 async function loadNgoAcceptedDonations() {
@@ -820,14 +1065,17 @@ async function loadNgoAcceptedDonations() {
   if (!container) return;
   container.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
   try {
-    const all = await api('/api/donations');
-    const myAccepted = all.filter(d => (d.acceptedByNgoName === state.user.name || d.acceptedByName === state.user.name || (d.status !== 'POSTED' && state.user.role === 'NGO')));
-    if (!myAccepted || myAccepted.length === 0) {
+    const myAccepted = await api('/api/donations/accepted') || [];
+    const countBadge = document.getElementById('ngo-accepted-count');
+    if (countBadge) countBadge.textContent = myAccepted.length;
+
+    if (myAccepted.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🤝</div>
-          <h3>No Accepted Donations</h3>
-          <p>Browse donations and accept items you can distribute to beneficiaries!</p>
+          <div class="empty-state-icon">🚚</div>
+          <h3>No Accepted Donations Yet</h3>
+          <p>Switch to the "Available Contributor Posts" tab to accept supplies for distribution to beneficiaries!</p>
+          <button class="btn btn-sm btn-primary mt-2" onclick="switchNgoTab('available')">View Available Contributor Posts</button>
         </div>
       `;
       return;
@@ -839,18 +1087,22 @@ async function loadNgoAcceptedDonations() {
           <div>
             <span class="badge badge-primary">${item.category}</span>
             <h3 class="card-title mt-1">${item.quantity} ${item.unit || 'units'}</h3>
-            <p class="card-subtitle">📍 ${item.city} • Contributor: ${item.contributorName}</p>
+            <p class="card-subtitle">📍 ${item.city} • Contributor: ${item.contributorName} (${item.address || 'Pickup location'})</p>
           </div>
           <span class="badge badge-status-${item.status}">${item.status}</span>
         </div>
-        <div class="card-footer flex justify-between items-center">
+        ${item.description ? `<p class="text-sm text-muted mb-2">"${item.description}"</p>` : ''}
+        <div class="card-footer flex justify-between items-center flex-wrap gap-2">
           <span class="text-xs text-muted">Current Stage: <strong>${item.status}</strong></span>
           <div class="flex gap-1">
             ${item.status === 'ACCEPTED' ? `
-              <button class="btn btn-sm btn-info" onclick="updateDonationStatus(${item.id}, 'COLLECTED')">Mark Collected</button>
+              <button class="btn btn-sm btn-info" onclick="updateDonationStatus(${item.id}, 'COLLECTED')">📦 Mark Collected</button>
             ` : ''}
             ${item.status === 'COLLECTED' ? `
-              <button class="btn btn-sm btn-success" onclick="openProofModal(${item.id})">Mark Distributed & Upload Proof</button>
+              <button class="btn btn-sm btn-success" onclick="openProofModal(${item.id})">📸 Mark Distributed & Upload Proof</button>
+            ` : ''}
+            ${item.status === 'DISTRIBUTED' ? `
+              <span class="badge badge-status-DISTRIBUTED">✅ Distributed to Beneficiaries</span>
             ` : ''}
           </div>
         </div>
@@ -915,9 +1167,16 @@ async function loadNgoMatches() {
 
 async function updateDonationStatus(id, newStatus) {
   try {
-    await api(`/api/donations/${id}/status?status=${newStatus}`, { method: 'PUT' });
+    if (newStatus === 'COLLECTED') {
+      await api(`/api/donations/${id}/collect`, { method: 'PUT' });
+    } else if (newStatus === 'ACCEPTED') {
+      await api(`/api/donations/${id}/accept`, { method: 'PUT' });
+    } else {
+      await api(`/api/donations/${id}/status?status=${newStatus}`, { method: 'PUT' });
+    }
     showToast(`Status updated to ${newStatus}`, 'success');
-    loadNgoAcceptedDonations();
+    loadNgoDashboard();
+    if (state.currentView === 'donations') loadDonations();
   } catch (err) {
     showToast(err.message || 'Status update failed', 'error');
   }
@@ -935,6 +1194,7 @@ async function submitProofDistribution() {
   const formData = new FormData();
   formData.append('note', note);
   if (photoInput && photoInput.files[0]) {
+    formData.append('photo', photoInput.files[0]);
     formData.append('proofPhoto', photoInput.files[0]);
   }
 
@@ -945,7 +1205,8 @@ async function submitProofDistribution() {
     });
     closeModal('modal-proof-distribution');
     showToast('Proof uploaded! Donation marked as DISTRIBUTED.', 'success');
-    loadNgoAcceptedDonations();
+    loadNgoDashboard();
+    if (state.currentView === 'donations') loadDonations();
   } catch (err) {
     showToast(err.message || 'Failed to submit proof', 'error');
   }
@@ -983,81 +1244,6 @@ async function loadConsumerDashboard() {
     `).join('');
   } catch (err) {
     container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
-  }
-}
-
-// ── Admin Dashboard ────────────────────────────────────────
-async function loadAdminView() {
-  if (!state.user || state.user.role !== 'ADMIN') {
-    navigateTo('home');
-    showToast('Admin access required', 'error');
-    return;
-  }
-
-  try {
-    const stats = await api('/api/admin/stats');
-    state.adminStats = stats;
-
-    const totalUsers = (stats.totalContributors || 0) + (stats.totalNgos || 0) + (stats.totalConsumers || 0);
-    document.getElementById('stat-total-users').innerText = stats.totalUsers || totalUsers || 0;
-    document.getElementById('stat-total-donations').innerText = stats.totalDonationPosts || stats.totalDonations || 0;
-    document.getElementById('stat-total-campaigns').innerText = stats.activeCampaigns || stats.totalCampaigns || 0;
-    document.getElementById('stat-total-raised').innerText = `₹${(stats.totalMoneyRaised || 0).toLocaleString()}`;
-
-    // Load category breakdown
-    const catContainer = document.getElementById('admin-category-breakdown');
-    const catMap = stats.donationsByCategory || stats.itemsByCategory || {};
-    if (catContainer) {
-      catContainer.innerHTML = Object.entries(catMap).map(([cat, count]) => `
-        <div class="flex justify-between items-center py-2" style="border-bottom: 1px solid var(--border);">
-          <span class="font-medium">${cat}</span>
-          <span class="badge badge-primary">${count} items</span>
-        </div>
-      `).join('');
-    }
-
-    // Load pending NGOs
-    loadPendingNgos();
-  } catch (err) {
-    showToast(err.message || 'Failed to load admin stats', 'error');
-  }
-}
-
-async function loadPendingNgos() {
-  const container = document.getElementById('admin-pending-ngos-tbody');
-  if (!container) return;
-  try {
-    const pending = await api('/api/admin/ngos/pending');
-    state.pendingNgos = pending || [];
-    if (state.pendingNgos.length === 0) {
-      container.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">No NGOs pending verification. All verified! ✓</td></tr>`;
-      return;
-    }
-
-    container.innerHTML = state.pendingNgos.map(ngo => `
-      <tr>
-        <td><strong>${ngo.organizationName || ngo.name}</strong></td>
-        <td>${ngo.email}</td>
-        <td>${ngo.city || '-'}</td>
-        <td><span class="badge badge-warning">Pending</span></td>
-        <td>
-          <button class="btn btn-sm btn-success" onclick="verifyNgo(${ngo.id})">Verify NGO</button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (err) {
-    container.innerHTML = `<tr><td colspan="5" class="text-danger py-2">Error: ${err.message}</td></tr>`;
-  }
-}
-
-async function verifyNgo(id) {
-  try {
-    await api(`/api/admin/users/${id}/verify`, { method: 'PUT' });
-    showToast('NGO account verified! They can now launch campaigns.', 'success');
-    loadPendingNgos();
-    loadAdminView();
-  } catch (err) {
-    showToast(err.message || 'Failed to verify NGO', 'error');
   }
 }
 
@@ -1127,12 +1313,16 @@ async function handleCreateCampaign(e) {
     showToast('Fundraising campaign created!', 'success');
     loadCampaigns();
   } catch (err) {
-    showToast(err.message || 'Failed to create campaign (Note: NGOs must be verified by Admin)', 'error');
+    showToast(err.message || 'Failed to create campaign', 'error');
   }
 }
 
 async function handleCreateDisaster(e) {
   e.preventDefault();
+  if (!state.user || state.user.role !== 'NGO') {
+    showToast('Only registered NGOs are authorized to launch emergency disaster relief.', 'error');
+    return;
+  }
   const form = e.target;
 
   // parse needs
@@ -1141,14 +1331,17 @@ async function handleCreateDisaster(e) {
   needInputs.forEach(row => {
     const item = row.querySelector('.need-item-name')?.value;
     const qty = parseInt(row.querySelector('.need-item-qty')?.value);
-    if (item && qty > 0) needs.push({ itemName: item, quantityNeeded: qty });
+    if (item && qty > 0) needs.push({ itemName: item, quantityNeeded: qty, unit: 'units' });
   });
 
+  const moneyTargetVal = parseFloat(form.targetAmount?.value || 10000);
   const data = {
     title: form.title.value,
     description: form.description.value,
     city: form.city.value,
-    targetAmount: parseFloat(form.targetAmount.value || 0),
+    state: form.city.value,
+    moneyTarget: moneyTargetVal,
+    targetAmount: moneyTargetVal,
     needs: needs
   };
 
@@ -1159,7 +1352,7 @@ async function handleCreateDisaster(e) {
     });
     form.reset();
     closeModal('modal-create-disaster');
-    showToast('🚨 Disaster Relief Campaign Launched!', 'success');
+    showToast('🚨 Disaster Relief Campaign Broadcasted!', 'success');
     loadDisasterRelief();
     loadDisasterBanner();
   } catch (err) {
@@ -1207,10 +1400,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.classList.add('selected');
       const role = card.dataset.role;
       document.getElementById('signup-role').value = role;
+
       const orgField = document.getElementById('signup-org-group');
-      if (orgField) {
-        if (role === 'NGO') orgField.classList.remove('hidden');
-        else orgField.classList.add('hidden');
+      const aadhaarBadge = document.getElementById('contributor-aadhaar-badge');
+      const aadhaarGroup = document.getElementById('signup-aadhaar-group');
+      const btnAadhaarOtp = document.getElementById('btn-contributor-send-otp');
+      const btnStandardRegister = document.getElementById('btn-standard-register');
+      const otpStep = document.getElementById('signup-aadhaar-otp-step');
+
+      // Hide OTP step if user switches role
+      if (otpStep) otpStep.classList.add('hidden');
+
+      if (role === 'CONTRIBUTOR') {
+        if (orgField) orgField.classList.add('hidden');
+        if (aadhaarBadge) aadhaarBadge.classList.remove('hidden');
+        if (aadhaarGroup) aadhaarGroup.classList.remove('hidden');
+        if (btnAadhaarOtp) btnAadhaarOtp.classList.remove('hidden');
+        if (btnStandardRegister) btnStandardRegister.classList.add('hidden');
+      } else if (role === 'NGO') {
+        if (orgField) orgField.classList.remove('hidden');
+        if (aadhaarBadge) aadhaarBadge.classList.add('hidden');
+        if (aadhaarGroup) aadhaarGroup.classList.add('hidden');
+        if (btnAadhaarOtp) btnAadhaarOtp.classList.add('hidden');
+        if (btnStandardRegister) btnStandardRegister.classList.remove('hidden');
+      } else { // CONSUMER
+        if (orgField) orgField.classList.add('hidden');
+        if (aadhaarBadge) aadhaarBadge.classList.add('hidden');
+        if (aadhaarGroup) aadhaarGroup.classList.add('hidden');
+        if (btnAadhaarOtp) btnAadhaarOtp.classList.add('hidden');
+        if (btnStandardRegister) btnStandardRegister.classList.remove('hidden');
       }
     });
   });

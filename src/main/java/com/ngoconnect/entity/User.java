@@ -36,6 +36,9 @@ public class User {
 
     private String organizationName; // for NGOs
 
+    private String aadhaarNumber;
+    private boolean aadhaarVerified = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

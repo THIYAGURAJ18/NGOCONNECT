@@ -64,6 +64,16 @@ public class DonationPostController {
         return ResponseEntity.ok(donationPostService.getMyPosts(user));
     }
 
+    // NGO gets only their own accepted donations
+    @GetMapping("/accepted")
+    @PreAuthorize("hasRole('NGO')")
+    public ResponseEntity<List<DonationPostDto.Response>> getMyAcceptedDonations(
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        User ngo = authService.findByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(donationPostService.getMyAcceptedPosts(ngo));
+    }
+
     // NGO accepts a donation
     @PutMapping("/{id}/accept")
     @PreAuthorize("hasRole('NGO')")
@@ -86,6 +96,24 @@ public class DonationPostController {
         return ResponseEntity.ok(donationPostService.markCollected(id, ngo));
     }
 
+    // NGO updates status (accept or collect)
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('NGO')")
+    public ResponseEntity<DonationPostDto.Response> updateStatus(
+        @PathVariable Long id,
+        @RequestParam String status,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        User ngo = authService.findByEmail(userDetails.getUsername());
+        if ("ACCEPTED".equalsIgnoreCase(status)) {
+            return ResponseEntity.ok(donationPostService.acceptDonation(id, ngo));
+        } else if ("COLLECTED".equalsIgnoreCase(status)) {
+            return ResponseEntity.ok(donationPostService.markCollected(id, ngo));
+        } else {
+            throw new IllegalArgumentException("Unsupported status update: " + status);
+        }
+    }
+
     // NGO marks as distributed with proof
     @PostMapping(value = "/{id}/distribute", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('NGO')")
@@ -93,10 +121,12 @@ public class DonationPostController {
         @PathVariable Long id,
         @RequestParam(required = false) String note,
         @RequestPart(value = "photo", required = false) MultipartFile photo,
+        @RequestPart(value = "proofPhoto", required = false) MultipartFile proofPhoto,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
         User ngo = authService.findByEmail(userDetails.getUsername());
-        String photoPath = fileStorageService.store(photo);
+        MultipartFile fileToSave = photo != null ? photo : proofPhoto;
+        String photoPath = fileStorageService.store(fileToSave);
         return ResponseEntity.ok(donationPostService.markDistributed(id, ngo, note, photoPath));
     }
 }

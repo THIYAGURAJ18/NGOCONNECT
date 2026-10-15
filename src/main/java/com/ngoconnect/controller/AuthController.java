@@ -27,6 +27,17 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthenticationManager authenticationManager;
+    private final com.ngoconnect.service.AadhaarVerificationService aadhaarVerificationService;
+
+    @PostMapping("/aadhaar/send-otp")
+    public ResponseEntity<AuthDto.AadhaarOtpResponse> sendAadhaarOtp(@Valid @RequestBody AuthDto.AadhaarOtpRequest request) {
+        return ResponseEntity.ok(aadhaarVerificationService.analyzeAadhaarAndSendOtp(request));
+    }
+
+    @PostMapping("/aadhaar/verify-signup")
+    public ResponseEntity<AuthDto.UserResponse> verifyAadhaarAndSignup(@Valid @RequestBody AuthDto.AadhaarSignupRequest request) {
+        return ResponseEntity.status(201).body(authService.signupWithAadhaar(request));
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<AuthDto.UserResponse> signup(@Valid @RequestBody AuthDto.SignupRequest request) {

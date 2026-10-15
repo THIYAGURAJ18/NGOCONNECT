@@ -31,9 +31,15 @@ public class DisasterReliefDto {
 
         private String state;
 
-        @NotNull(message = "Money target is required")
-        @DecimalMin(value = "1.0")
         private BigDecimal moneyTarget;
+
+        public void setTargetAmount(BigDecimal targetAmount) {
+            this.moneyTarget = targetAmount;
+        }
+
+        public BigDecimal getMoneyTarget() {
+            return this.moneyTarget != null ? this.moneyTarget : BigDecimal.valueOf(10000);
+        }
 
         private List<ReliefNeedRequest> needs;
     }

@@ -38,24 +38,16 @@ public class DonationPostService {
     }
 
     public List<DonationPostDto.Response> browse(String category, String city, String status, User currentUser) {
-        // If not logged in, contributor posts are protected from general public
-        if (currentUser == null) {
-            return java.util.Collections.emptyList();
-        }
-
-        // If Contributor, they only see their own posts
-        if (currentUser.getRole() == User.Role.CONTRIBUTOR) {
-            return getMyPosts(currentUser);
-        }
-
-        // Only NGOs and Orphanages/Care Centers (CONSUMER) and ADMIN see all available community donation posts
         DonationPost.Status statusEnum = null;
         if (status != null && !status.isBlank()) {
-            try { statusEnum = DonationPost.Status.valueOf(status.toUpperCase()); } catch (Exception ignored) {}
+            try { statusEnum = DonationPost.Status.valueOf(status.toUpperCase().trim()); } catch (Exception ignored) {}
         }
+        String cleanCategory = (category != null && !category.isBlank()) ? category.trim() : null;
+        String cleanCity = (city != null && !city.isBlank()) ? city.trim() : null;
+
         return donationPostRepository.findWithFilters(
-            (category != null && category.isBlank()) ? null : category,
-            (city != null && city.isBlank()) ? null : city,
+            cleanCategory,
+            cleanCity,
             statusEnum
         ).stream().map(DonationPostDto.Response::from).collect(Collectors.toList());
     }
@@ -70,6 +62,11 @@ public class DonationPostService {
 
     public List<DonationPostDto.Response> getMyPosts(User contributor) {
         return donationPostRepository.findByContributorOrderByCreatedAtDesc(contributor)
+            .stream().map(DonationPostDto.Response::from).collect(Collectors.toList());
+    }
+
+    public List<DonationPostDto.Response> getMyAcceptedPosts(User ngo) {
+        return donationPostRepository.findByAcceptedByNgoOrderByAcceptedAtDesc(ngo)
             .stream().map(DonationPostDto.Response::from).collect(Collectors.toList());
     }
 

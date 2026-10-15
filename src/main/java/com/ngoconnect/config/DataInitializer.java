@@ -28,6 +28,14 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // Ensure all existing NGOs/users are verified since Admin UI is removed
+        userRepository.findAll().forEach(u -> {
+            if (!u.isVerified()) {
+                u.setVerified(true);
+                userRepository.save(u);
+            }
+        });
+
         if (userRepository.count() > 0) {
             log.info("Users already exist, skipping account seed.");
             return;
@@ -40,7 +48,7 @@ public class DataInitializer implements CommandLineRunner {
         createUser("Ravi Kumar", "contributor@demo.com", "demo123", User.Role.CONTRIBUTOR, "Chennai", true, null);
         createUser("Priya Sharma", "priya@demo.com", "demo123", User.Role.CONTRIBUTOR, "Mumbai", true, null);
         createUser("HelpHand Foundation", "ngo@helphand.org", "demo123", User.Role.NGO, "Chennai", true, "HelpHand Foundation");
-        createUser("New Life NGO", "ngo2@newlife.org", "demo123", User.Role.NGO, "Mumbai", false, "New Life NGO");
+        createUser("New Life NGO", "ngo2@newlife.org", "demo123", User.Role.NGO, "Mumbai", true, "New Life NGO");
         createUser("Sunshine Orphanage", "consumer@orphanage.com", "demo123", User.Role.CONSUMER, "Chennai", true, "Sunshine Orphanage");
         createUser("Elder Care Centre", "eldercare@demo.com", "demo123", User.Role.CONSUMER, "Mumbai", true, "Elder Care Centre");
 
