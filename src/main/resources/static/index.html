@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Donation — Community Logistics & Disaster Relief Platform</title>
   <meta name="description" content="Smart Donation connects Contributors, NGOs, and Orphanages/Care Centers with transparent tracking, smart matching, and disaster relief." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234f46e5'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
 </head>
 <body>
 
@@ -20,7 +23,7 @@
   <header class="navbar">
     <div class="navbar-inner">
       <a href="javascript:void(0)" onclick="navigateTo('home')" class="navbar-brand">
-        <div class="brand-icon">🎁</div>
+        <div class="brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
         <span>Smart Donation</span>
       </a>
 
@@ -29,7 +32,7 @@
         <a href="javascript:void(0)" data-view="donations" onclick="navigateTo('donations')">Browse Donations</a>
         <a href="javascript:void(0)" data-view="requirements" onclick="navigateTo('requirements')">Requirements</a>
         <a href="javascript:void(0)" data-view="campaigns" onclick="navigateTo('campaigns')">Campaigns</a>
-        <a href="javascript:void(0)" data-view="disaster" onclick="navigateTo('disaster')">🚨 Disaster Relief</a>
+        <a href="javascript:void(0)" data-view="disaster" onclick="navigateTo('disaster')">Disaster Relief</a>
         <a href="javascript:void(0)" id="nav-dashboard-link" data-view="dashboard" class="hidden" onclick="navigateTo('dashboard')">My Dashboard</a>
       </nav>
 
@@ -47,19 +50,19 @@
         </div>
 
         <!-- Mobile Hamburger -->
-        <button class="hamburger" id="btn-hamburger" aria-label="Toggle menu">☰</button>
+        <button class="hamburger" id="btn-hamburger" aria-label="Toggle menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
       </div>
     </div>
   </header>
 
   <!-- Mobile Dropdown Navigation -->
   <div id="mobile-menu" class="mobile-menu hidden">
-    <a href="javascript:void(0)" onclick="navigateTo('home'); closeMobileMenu();" class="py-2">🏠 Home</a>
-    <a href="javascript:void(0)" onclick="navigateTo('donations'); closeMobileMenu();" class="py-2">📦 Browse Donations</a>
-    <a href="javascript:void(0)" onclick="navigateTo('requirements'); closeMobileMenu();" class="py-2">📋 Community Needs</a>
-    <a href="javascript:void(0)" onclick="navigateTo('campaigns'); closeMobileMenu();" class="py-2">🎯 Money Campaigns</a>
-    <a href="javascript:void(0)" onclick="navigateTo('disaster'); closeMobileMenu();" class="py-2">🚨 Disaster Relief</a>
-    <a href="javascript:void(0)" onclick="navigateTo('dashboard'); closeMobileMenu();" class="py-2">📊 My Dashboard</a>
+    <a href="javascript:void(0)" onclick="navigateTo('home'); closeMobileMenu();" class="py-2">Home</a>
+    <a href="javascript:void(0)" onclick="navigateTo('donations'); closeMobileMenu();" class="py-2">Browse Donations</a>
+    <a href="javascript:void(0)" onclick="navigateTo('requirements'); closeMobileMenu();" class="py-2">Community Needs</a>
+    <a href="javascript:void(0)" onclick="navigateTo('campaigns'); closeMobileMenu();" class="py-2">Money Campaigns</a>
+    <a href="javascript:void(0)" onclick="navigateTo('disaster'); closeMobileMenu();" class="py-2">Disaster Relief</a>
+    <a href="javascript:void(0)" onclick="navigateTo('dashboard'); closeMobileMenu();" class="py-2">My Dashboard</a>
   </div>
 
   <main>
@@ -80,9 +83,9 @@
             Bridging generous contributors, registered NGOs, and orphanages/care centers. Post supply donations, match community needs, support verified causes, and coordinate emergency response.
           </p>
           <div class="hero-actions">
-            <button class="btn btn-lg btn-primary" onclick="openModal('modal-create-donation')">🎁 Post a Donation</button>
-            <button class="btn btn-lg btn-outline" style="color:white; border-color:rgba(255,255,255,0.4);" onclick="navigateTo('requirements')">📋 View Needs</button>
-            <button class="btn btn-lg btn-danger" onclick="navigateTo('disaster')">🚨 Emergency Hub</button>
+            <button class="btn btn-lg btn-primary" onclick="openModal('modal-create-donation')">Post a Donation</button>
+            <button class="btn btn-lg btn-outline" style="color:white; border-color:rgba(255,255,255,0.4);" onclick="navigateTo('requirements')">View Needs</button>
+            <button class="btn btn-lg btn-danger" onclick="navigateTo('disaster')">Emergency Hub</button>
           </div>
 
           <div class="hero-stats">
@@ -110,9 +113,9 @@
             <span class="text-xs" style="color:#94a3b8; font-weight:500;">Quick Role Switcher:</span>
           </div>
           <div class="flex gap-1 flex-wrap">
-            <button class="btn btn-xs" onclick="quickLogin('ngo@helphand.org', 'demo123')">🤝 NGO (Verified)</button>
-            <button class="btn btn-xs" onclick="quickLogin('contributor@demo.com', 'demo123')">🎁 Contributor</button>
-            <button class="btn btn-xs" onclick="quickLogin('consumer@orphanage.com', 'demo123')">🏠 Care Center</button>
+            <button class="btn btn-xs" onclick="quickLogin('ngo@helphand.org', 'demo123')">NGO (Verified)</button>
+            <button class="btn btn-xs" onclick="quickLogin('contributor@demo.com', 'demo123')">Contributor</button>
+            <button class="btn btn-xs" onclick="quickLogin('consumer@orphanage.com', 'demo123')">Care Center</button>
           </div>
         </div>
       </div>
@@ -121,7 +124,7 @@
       <div class="section container">
         <div class="flex justify-between items-center mb-3">
           <div>
-            <h2 class="section-title">🚨 Urgent Community Requirements</h2>
+            <h2 class="section-title">Urgent Community Requirements</h2>
             <p class="section-subtitle">High-priority requests from shelters and care centers.</p>
           </div>
           <button class="btn btn-sm btn-outline" onclick="navigateTo('requirements')">View All →</button>
@@ -136,7 +139,7 @@
         <div class="container">
           <div class="flex justify-between items-center mb-3">
             <div>
-              <h2 class="section-title">📦 Available Donations</h2>
+              <h2 class="section-title">Available Donations</h2>
               <p class="section-subtitle">Items contributed by donors ready for NGO distribution.</p>
             </div>
             <div class="flex gap-1">
@@ -154,7 +157,7 @@
       <div class="section container">
         <div class="flex justify-between items-center mb-3">
           <div>
-            <h2 class="section-title">🎯 Verified Fundraising Campaigns</h2>
+            <h2 class="section-title">Verified Fundraising Campaigns</h2>
             <p class="section-subtitle">Support verified projects with instant mock-payment simulation.</p>
           </div>
           <button class="btn btn-sm btn-outline" onclick="navigateTo('campaigns')">All Campaigns →</button>
@@ -171,7 +174,7 @@
     <section id="view-donations" class="view-section container py-4 hidden animate-fadein">
       <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div>
-          <h2>📦 Browse Donation Posts</h2>
+          <h2>Browse Donation Posts</h2>
           <p class="text-muted">Available supplies offered by donors — exclusively routed to registered NGOs and Orphanages.</p>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-create-donation')">+ Create Donation Post</button>
@@ -226,7 +229,7 @@
     <section id="view-requirements" class="view-section container py-4 hidden animate-fadein">
       <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div>
-          <h2>📋 Community Requirements</h2>
+          <h2>Community Requirements</h2>
           <p class="text-muted">Urgent requests from orphanages, care homes, and shelters (high urgency sorted first).</p>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-create-requirement')">+ Request Supplies</button>
@@ -269,7 +272,7 @@
     <section id="view-campaigns" class="view-section container py-4 hidden animate-fadein">
       <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div>
-          <h2>🎯 Fundraising Campaigns</h2>
+          <h2>Fundraising Campaigns</h2>
           <p class="text-muted">Verified NGOs and Care Centers raising funds for community support.</p>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-create-campaign')">+ Create Campaign</button>
@@ -287,17 +290,17 @@
       <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div>
           <span class="badge badge-danger mb-1">EMERGENCY OPERATIONS</span>
-          <h2>🚨 Disaster Relief Command Hub</h2>
+          <h2>Disaster Relief Command Hub</h2>
           <p class="text-muted">Rapid mobilization for floods, earthquakes, and humanitarian emergencies.</p>
         </div>
         <div class="flex items-center gap-2">
           <button id="btn-launch-disaster" class="btn btn-danger hidden" onclick="openModal('modal-create-disaster')">+ Launch Emergency Relief</button>
-          <span id="ngo-only-disaster-notice" class="badge badge-neutral text-xs">🛡️ NGO-Only Broadcast</span>
+          <span id="ngo-only-disaster-notice" class="badge badge-neutral text-xs">NGO-Only Broadcast</span>
         </div>
       </div>
 
       <div class="alert alert-warning mb-4">
-        <span class="alert-icon">⚠️</span>
+        <span class="alert-icon">!</span>
         <div>
           <strong>Verified NGO Emergency System:</strong> Only registered NGOs can post emergency relief needs and launch disaster campaigns. Contributors can pledge essential supplies (food packets, drinking water, blankets, medical kits) or contribute relief funds instantly.
         </div>
@@ -317,7 +320,7 @@
       <div id="dash-contributor" class="role-dashboard hidden">
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
           <div>
-            <h2>🎁 Contributor Dashboard</h2>
+            <h2>Contributor Dashboard</h2>
             <p class="text-muted">Track your donations through the 4-stage logistics pipeline.</p>
           </div>
           <button class="btn btn-primary" onclick="openModal('modal-create-donation')">+ New Donation Post</button>
@@ -333,7 +336,7 @@
       <div id="dash-ngo" class="role-dashboard hidden">
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
           <div>
-            <h2>🤝 NGO Operations Center</h2>
+            <h2>NGO Operations Center</h2>
             <p class="text-muted">Manage accepted posts, update distribution status, and review matching suggestions.</p>
           </div>
           <div class="flex gap-1 flex-wrap">
@@ -345,20 +348,20 @@
         <!-- NGO Tabs -->
         <div class="tabs mb-3">
           <div id="tab-btn-ngo-available" class="tab active" onclick="switchNgoTab('available')">
-            📦 Available Contributor Posts <span id="ngo-available-count" class="badge badge-primary text-xs" style="margin-left:4px;">0</span>
+            Available Contributor Posts <span id="ngo-available-count" class="badge badge-primary text-xs" style="margin-left:4px;">0</span>
           </div>
           <div id="tab-btn-ngo-accepted" class="tab" onclick="switchNgoTab('accepted')">
-            🚚 Accepted Donations & Logistics <span id="ngo-accepted-count" class="badge badge-neutral text-xs" style="margin-left:4px;">0</span>
+            Accepted Donations & Logistics <span id="ngo-accepted-count" class="badge badge-neutral text-xs" style="margin-left:4px;">0</span>
           </div>
           <div id="tab-btn-ngo-matches" class="tab" onclick="switchNgoTab('matches')">
-            💡 Smart Matching Suggestions
+            Smart Matching Suggestions
           </div>
         </div>
 
         <!-- 1. Available Contributor Posts Tab -->
         <div id="ngo-tab-available">
           <div class="alert alert-info mb-3">
-            <span class="alert-icon">📦</span>
+            
             <div><strong>Incoming Contributor Donations:</strong> Review supplies posted by donors, inspect pickup locations, and accept items for distribution.</div>
           </div>
           <div id="ngo-available-donations">
@@ -376,7 +379,7 @@
         <!-- 3. Smart Matching Suggestions Tab -->
         <div id="ngo-tab-matches" class="hidden">
           <div class="alert alert-info mb-3">
-            <span class="alert-icon">💡</span>
+            
             <div>Our matching algorithm pairs available donation posts with community requirements having the same category and city!</div>
           </div>
           <div id="ngo-matches-list">
@@ -389,7 +392,7 @@
       <div id="dash-consumer" class="role-dashboard hidden">
         <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
           <div>
-            <h2>🏠 Care Center / Consumer Dashboard</h2>
+            <h2>Care Center / Consumer Dashboard</h2>
             <p class="text-muted">Request supplies for your shelter, care center, or orphanage.</p>
           </div>
           <button class="btn btn-primary" onclick="openModal('modal-create-requirement')">+ Post Requirement</button>
@@ -433,9 +436,9 @@
         <div style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
           <p class="text-xs text-muted mb-2 font-semibold">1-CLICK DEMO ACCOUNTS:</p>
           <div class="grid-2 gap-1">
-            <button class="btn btn-xs btn-outline" onclick="quickLogin('ngo@helphand.org', 'demo123')">🤝 NGO (Verified)</button>
-            <button class="btn btn-xs btn-outline" onclick="quickLogin('contributor@demo.com', 'demo123')">🎁 Contributor</button>
-            <button class="btn btn-xs btn-outline" onclick="quickLogin('consumer@orphanage.com', 'demo123')">🏠 Care Center</button>
+            <button class="btn btn-xs btn-outline" onclick="quickLogin('ngo@helphand.org', 'demo123')">NGO (Verified)</button>
+            <button class="btn btn-xs btn-outline" onclick="quickLogin('contributor@demo.com', 'demo123')">Contributor</button>
+            <button class="btn btn-xs btn-outline" onclick="quickLogin('consumer@orphanage.com', 'demo123')">Care Center</button>
           </div>
         </div>
       </div>
@@ -456,15 +459,15 @@
             <label class="form-label">Select Your Role</label>
             <div class="role-cards">
               <div class="role-card selected" data-role="CONTRIBUTOR">
-                <div class="role-icon">🎁</div>
+                <div class="role-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
                 <div class="role-name">Contributor</div>
               </div>
               <div class="role-card" data-role="NGO">
-                <div class="role-icon">🤝</div>
+                <div class="role-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
                 <div class="role-name">NGO</div>
               </div>
               <div class="role-card" data-role="CONSUMER">
-                <div class="role-icon">🏠</div>
+                <div class="role-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
                 <div class="role-name">Care Center</div>
               </div>
             </div>
@@ -472,7 +475,7 @@
 
           <!-- Contributor Aadhaar Notice -->
           <div id="contributor-aadhaar-badge" class="alert alert-info mb-3 p-2" style="font-size: 0.85rem;">
-            <span>🛡️</span>
+            
             <div><strong>UIDAI Aadhaar Verification:</strong> Contributors must enter their 12-digit Aadhaar number and validate via OTP sent to their Aadhaar-registered mobile.</div>
           </div>
 
@@ -509,14 +512,14 @@
               <label class="form-label">Aadhaar Card Number (12 Digits) <span class="required">*</span></label>
               <div style="position: relative;">
                 <input type="text" id="signup-aadhaar" name="aadhaarNumber" class="form-control" maxlength="14" placeholder="XXXX XXXX XXXX" style="letter-spacing: 2px; font-weight: 600;" oninput="formatAadhaarInput(this)" />
-                <span id="aadhaar-verify-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1.1rem;">🆔</span>
+                <span id="aadhaar-verify-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; font-weight: bold;"></span>
               </div>
               <p class="text-xs text-muted mt-1">Aadhaar is analyzed and verified. An OTP will be dispatched to your UIDAI registered mobile number.</p>
             </div>
 
             <!-- Action Button for Contributor: Verify Aadhaar & Send OTP -->
             <button type="button" id="btn-contributor-send-otp" class="btn btn-primary btn-full" onclick="requestAadhaarOtp()">
-              🔍 Analyze Aadhaar & Send OTP
+              Analyze Aadhaar & Send OTP
             </button>
 
             <!-- Action Button for NGO / Care Center -->
@@ -529,7 +532,7 @@
           <div id="signup-aadhaar-otp-step" class="hidden" style="background: var(--surface-2); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border); margin-top: 1rem;">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-1">
-                <span style="font-size: 1.2rem;">📲</span>
+                
                 <strong style="font-size: 0.95rem;">Enter Aadhaar OTP</strong>
               </div>
               <span class="badge badge-success text-xs">Aadhaar Validated</span>
@@ -541,7 +544,7 @@
 
             <!-- Test / Sandbox OTP Display -->
             <div id="otp-demo-banner" class="alert alert-warning mb-3 p-2" style="font-size: 0.85rem; border-left: 3px solid #f59e0b;">
-              <span class="alert-icon">🔔</span>
+              <span class="alert-icon">!</span>
               <div>
                 <strong>DEMO OTP CODE:</strong> <span id="otp-demo-code" style="font-weight: 700; font-size: 1.15rem; color: #b45309; letter-spacing: 3px;"></span>
                 <div class="text-xs text-muted">Aadhaar SMS simulation. Enter this code below to validate.</div>
@@ -558,7 +561,7 @@
                 ← Change Details
               </button>
               <button type="button" id="btn-verify-otp-submit" class="btn btn-success btn-sm" onclick="verifyAadhaarOtpAndSignup()" style="flex: 2;">
-                ✓ Validate OTP & Sign Up
+                Validate OTP & Sign Up
               </button>
             </div>
 
@@ -720,7 +723,7 @@
   <div id="modal-create-disaster" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">🚨 Launch Disaster Relief Emergency</h3>
+        <h3 class="modal-title">Launch Disaster Relief Emergency</h3>
         <button class="modal-close" onclick="closeModal('modal-create-disaster')">×</button>
       </div>
       <div class="modal-body">
@@ -756,21 +759,21 @@
                 <input type="text" class="form-control need-item-name" value="Food Packets" required />
                 <div class="flex gap-1">
                   <input type="number" class="form-control need-item-qty" value="1000" min="1" required />
-                  <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">✕</button>
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">&times;</button>
                 </div>
               </div>
               <div class="disaster-need-row form-row mb-1">
                 <input type="text" class="form-control need-item-name" value="Drinking Water Litres" required />
                 <div class="flex gap-1">
                   <input type="number" class="form-control need-item-qty" value="2000" min="1" required />
-                  <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">✕</button>
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">&times;</button>
                 </div>
               </div>
               <div class="disaster-need-row form-row mb-1">
                 <input type="text" class="form-control need-item-name" value="Blankets" required />
                 <div class="flex gap-1">
                   <input type="number" class="form-control need-item-qty" value="300" min="1" required />
-                  <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">✕</button>
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">&times;</button>
                 </div>
               </div>
             </div>
@@ -791,7 +794,7 @@
       </div>
       <div class="modal-body">
         <div class="mock-payment-notice">
-          <span>💳</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           <div><strong>MOCK PAYMENT SIMULATION:</strong> This is a secure prototype payment step (Razorpay ready). No real charge occurs.</div>
         </div>
 
@@ -830,7 +833,7 @@
   <div id="modal-pledge-material" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">📦 Pledge Emergency Supplies</h3>
+        <h3 class="modal-title">Pledge Emergency Supplies</h3>
         <button class="modal-close" onclick="closeModal('modal-pledge-material')">×</button>
       </div>
       <div class="modal-body">
@@ -858,7 +861,7 @@
   <div id="modal-proof-distribution" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">📸 Upload Proof of Distribution</h3>
+        <h3 class="modal-title">Upload Proof of Distribution</h3>
         <button class="modal-close" onclick="closeModal('modal-proof-distribution')">×</button>
       </div>
       <div class="modal-body">
@@ -883,7 +886,7 @@
   <footer>
     <div class="container">
       <p class="mb-1"><strong>Smart Donation</strong> — Community Logistics & Disaster Relief Platform</p>
-      <p class="text-light text-xs">Developed with Spring Boot 3, Java 17, and Vanilla Web Architecture. Built with ❤️ for community impact.</p>
+      <p class="text-light text-xs">Developed with Spring Boot 3, Java 17, and Vanilla Web Architecture. Built for community impact.</p>
     </div>
   </footer>
 

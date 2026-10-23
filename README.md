@@ -4,7 +4,7 @@ A comprehensive full-stack web application connecting **Contributors**, **NGOs**
 
 ---
 
-## 🚀 Quick Start (Windows)
+## Quick Start (Windows)
 
 ### Prerequisites
 - **Java 17+** installed and available on PATH (`java -version`)
@@ -20,11 +20,11 @@ Open PowerShell or Command Prompt in the `e:\NGOCONNECT` directory and run:
 
 ### 2. Open in Browser
 Navigate to:
-👉 **[http://localhost:8080](http://localhost:8080)**
+**[http://localhost:8080](http://localhost:8080)**
 
 ---
 
-## 🔑 Pre-seeded Demo Accounts
+## Pre-seeded Demo Accounts
 
 The database is pre-seeded with ready-to-test accounts on startup:
 
@@ -36,11 +36,11 @@ The database is pre-seeded with ready-to-test accounts on startup:
 | **NGO (Unverified)** | `ngo2@newlife.org` | `demo123` | Pending verification in Admin queue |
 | **Care Center / Consumer** | `consumer@orphanage.com` | `demo123` | Can post requirements & beneficiary campaigns |
 
-> ⚡ **Tip:** You can also use the **1-Click Quick Demo Login** buttons located at the top banner and in the login modal to switch between roles instantly!
+> **Tip:** You can also use the **1-Click Quick Demo Login** buttons located at the top banner and in the login modal to switch between roles instantly!
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 1. **Role-Based Authentication & Route Protection**:
    - Four distinct user roles: `CONTRIBUTOR`, `NGO`, `CONSUMER`, `ADMIN`.
@@ -50,7 +50,7 @@ The database is pre-seeded with ready-to-test accounts on startup:
 2. **Donation Posts (Contributor)**:
    - Category (`Food`, `Clothes`, `Medicine`, `Books`, `Electronics`, `Other`), quantity, condition, location, and optional photo upload.
    - Uploaded photos saved securely in the local `uploads/` directory.
-   - Interactive 4-stage Status Stepper: `POSTED` ➔ `ACCEPTED` ➔ `COLLECTED` ➔ `DISTRIBUTED`.
+   - Interactive 4-stage Status Stepper: `POSTED` -> `ACCEPTED` -> `COLLECTED` -> `DISTRIBUTED`.
 
 3. **Community Requirements (Shelters & NGOs)**:
    - Item requests with quantity, target beneficiaries ("for whom"), location, and urgency (`HIGH`, `MEDIUM`, `LOW`).
@@ -83,7 +83,7 @@ The database is pre-seeded with ready-to-test accounts on startup:
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Backend**: Java 17, Spring Boot 3.2.5 (Maven)
   - `spring-boot-starter-web`: RESTful endpoints

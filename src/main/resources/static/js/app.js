@@ -20,7 +20,7 @@ function showToast(message, type = 'info') {
   if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  const icon = type === 'success' ? '&check;' : type === 'error' ? '&times;' : 'i';
   toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${message}</span>`;
   container.appendChild(toast);
   setTimeout(() => {
@@ -127,7 +127,7 @@ function updateNav() {
         <span class="avatar">${initial}</span>
         <span>${user.name}</span>
         <span class="badge badge-primary text-xs">${user.role}</span>
-        ${user.aadhaarVerified ? `<span class="badge badge-success text-xs" style="background:#059669; color:#fff;" title="Aadhaar Verified Contributor">🛡️ Aadhaar Verified</span>` : ''}
+        ${user.aadhaarVerified ? `<span class="badge badge-success text-xs" style="background:#059669; color:#fff;" title="Aadhaar Verified Contributor">Aadhaar Verified</span>` : ''}
       `;
     }
     if (dashboardNav) dashboardNav.classList.remove('hidden');
@@ -207,14 +207,14 @@ function formatAadhaarInput(input) {
   if (icon) {
     if (val.length === 12) {
       if (val.startsWith('0') || val.startsWith('1')) {
-        icon.textContent = '❌';
+        icon.innerHTML = '&times;'; icon.style.color = '#ef4444';
         icon.title = 'Aadhaar cannot start with 0 or 1';
       } else {
-        icon.textContent = '✅';
+        icon.innerHTML = '&check;'; icon.style.color = '#10b981';
         icon.title = '12 Digits Ready';
       }
     } else {
-      icon.textContent = '🆔';
+      icon.textContent = '';
       icon.title = 'Enter 12 digits';
     }
   }
@@ -297,13 +297,13 @@ async function requestAadhaarOtp() {
     }
 
     if (btn) btn.classList.add('hidden');
-    showToast(`✅ Aadhaar Validated! OTP sent to ${res.maskedMobile}`, 'success');
+    showToast(`Aadhaar Validated! OTP sent to ${res.maskedMobile}`, 'success');
   } catch (err) {
     showToast(err.message || 'Aadhaar analysis failed', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `🔍 Analyze Aadhaar & Send OTP`;
+      btn.innerHTML = `Analyze Aadhaar & Send OTP`;
     }
   }
 }
@@ -354,7 +354,7 @@ async function verifyAadhaarOtpAndSignup() {
       })
     });
 
-    showToast('🎉 Aadhaar Verified & Contributor Account Created! Logging you in...', 'success');
+    showToast('Aadhaar Verified & Contributor Account Created! Logging you in...', 'success');
     await loginUser(email, password);
     closeModal('modal-signup');
   } catch (err) {
@@ -362,7 +362,7 @@ async function verifyAadhaarOtpAndSignup() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `✓ Validate OTP & Sign Up`;
+      btn.innerHTML = `Validate OTP & Sign Up`;
     }
   }
 }
@@ -435,7 +435,7 @@ async function loadDisasterBanner() {
 
       banner.innerHTML = `
         <div class="disaster-banner-inner">
-          <div class="disaster-banner-icon">🚨</div>
+          <div class="disaster-banner-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
           <div class="disaster-banner-content">
             <div class="disaster-banner-title">EMERGENCY RELIEF ACTIVE: ${d.title} (${d.city})</div>
             <div class="disaster-banner-items">
@@ -464,7 +464,7 @@ async function loadDisasterRelief() {
     if (state.disasters.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🛡️</div>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
           <h3>No Active Emergencies</h3>
           <p>There are currently no active disaster relief campaigns.</p>
         </div>
@@ -495,7 +495,7 @@ async function loadDisasterRelief() {
             <div>
               <span class="badge badge-danger">EMERGENCY RELIEF</span>
               <h3 class="card-title mt-1">${d.title}</h3>
-              <p class="card-subtitle">📍 ${d.city} • Organized by ${d.createdByNgoName || d.organizationName || 'Verified NGO'}</p>
+              <p class="card-subtitle">${d.city} • Organized by ${d.createdByNgoName || d.organizationName || 'Verified NGO'}</p>
             </div>
           </div>
           <p class="text-sm text-muted mb-3">${d.description}</p>
@@ -517,8 +517,8 @@ async function loadDisasterRelief() {
           </div>
 
           <div class="card-footer flex justify-between items-center gap-2">
-            <button class="btn btn-sm btn-outline" onclick="openPledgeModal(${d.id})">📦 Pledge Materials</button>
-            <button class="btn btn-sm btn-danger" onclick="openDonateModal(${d.campaignId}, '${d.title.replace(/'/g, "\\'")}')">❤️ Donate Funds</button>
+            <button class="btn btn-sm btn-outline" onclick="openPledgeModal(${d.id})">Pledge Materials</button>
+            <button class="btn btn-sm btn-danger" onclick="openDonateModal(${d.campaignId}, '${d.title.replace(/'/g, "\\'")}')">Donate Funds</button>
           </div>
         </div>
       `;
@@ -536,25 +536,25 @@ async function loadDonations() {
     if (!user) {
       alertContainer.className = 'alert alert-info mb-3';
       alertContainer.innerHTML = `
-        <span class="alert-icon">ℹ️</span>
+        <span class="alert-icon">i</span>
         <div><strong>Community Donation Logistics:</strong> Donations posted by contributors are routed directly to registered <strong>NGOs and Orphanages/Care Centers</strong>. <a href="javascript:void(0)" onclick="openModal('modal-login')" class="font-bold underline" style="color:var(--primary-dark);">Sign in as an NGO</a> to accept supplies for distribution, or as a Contributor to post donations.</div>
       `;
     } else if (user.role === 'CONTRIBUTOR') {
       alertContainer.className = 'alert alert-info mb-3';
       alertContainer.innerHTML = `
-        <span class="alert-icon">ℹ️</span>
+        <span class="alert-icon">i</span>
         <div><strong>Contributor Direct Routing:</strong> Your donation posts are displayed directly to registered <strong>NGOs</strong> for collection and delivery. Below are community donation posts. You can also view your personal posts in <a href="javascript:void(0)" onclick="navigateTo('dashboard')" class="font-bold underline" style="color:var(--primary-dark);">My Dashboard</a>.</div>
       `;
     } else if (user.role === 'NGO') {
       alertContainer.className = 'alert alert-success mb-3';
       alertContainer.innerHTML = `
-        <span class="alert-icon">🤝</span>
+        <span class="alert-icon">&check;</span>
         <div><strong>NGO Dispatch Hub:</strong> Showing community donations contributed by donors. Review details, accept items, and coordinate collection. Accepted items appear in your NGO Operations Center.</div>
       `;
     } else if (user.role === 'CONSUMER') {
       alertContainer.className = 'alert alert-success mb-3';
       alertContainer.innerHTML = `
-        <span class="alert-icon">🏠</span>
+        <span class="alert-icon">&check;</span>
         <div><strong>Orphanage / Care Center View:</strong> Community donations available for distribution by partner NGOs to your center.</div>
       `;
     }
@@ -588,7 +588,7 @@ function renderDonationsGrid(container, list) {
     const isContributor = state.user && state.user.role === 'CONTRIBUTOR';
     container.innerHTML = `
       <div class="empty-state w-full">
-        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
         <h3>No Donations Available</h3>
         <p>${isContributor ? 'You can click "Create Donation Post" to contribute supplies!' : 'No community donation posts available matching these filters.'}</p>
       </div>
@@ -601,8 +601,8 @@ function renderDonationsGrid(container, list) {
     const isConsumer = state.user && state.user.role === 'CONSUMER';
     const canAccept = isNgo && item.status === 'POSTED';
     const photoHtml = item.photoPath 
-      ? `<img src="${item.photoPath}" alt="${item.category}" class="card-image" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>🎁</div>'"/>`
-      : `<div class="card-img-placeholder">🎁</div>`;
+      ? `<img src="${item.photoPath}" alt="${item.category}" class="card-image" onerror="this.outerHTML='<div class=\\\'card-img-placeholder\\\'\>No Photo</div>'"/>`
+      : `<div class="card-img-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
 
     return `
       <div class="card">
@@ -612,13 +612,13 @@ function renderDonationsGrid(container, list) {
           <span class="badge badge-status-${item.status}">${item.status}</span>
         </div>
         <h3 class="card-title">${item.quantity} ${item.unit || 'units'} (${item.condition || 'GOOD'} condition)</h3>
-        <p class="card-subtitle mb-2">📍 ${item.city} • by <strong>${item.contributorName}</strong></p>
+        <p class="card-subtitle mb-2">${item.city} • by <strong>${item.contributorName}</strong></p>
         <p class="text-sm text-muted mb-3">${item.description || 'No description provided.'}</p>
         
         <div class="card-footer flex justify-between items-center">
           <span class="text-xs text-light">${new Date(item.createdAt).toLocaleDateString()}</span>
           ${canAccept ? `
-            <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">🤝 Accept for Distribution</button>
+            <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">Accept for Distribution</button>
           ` : isConsumer ? `
             <span class="text-xs text-primary font-semibold">Available for Care Center</span>
           ` : `
@@ -669,7 +669,7 @@ function renderRequirementsGrid(container, list) {
   if (!list || list.length === 0) {
     container.innerHTML = `
       <div class="empty-state w-full">
-        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
         <h3>No Requirements Listed</h3>
         <p>No community needs matching your search. Post one if you represent a shelter or care home!</p>
       </div>
@@ -686,7 +686,7 @@ function renderRequirementsGrid(container, list) {
         </div>
         <h3 class="card-title">${req.item}</h3>
         <p class="text-sm font-semibold text-primary mb-1">Required: ${req.quantity}</p>
-        <p class="card-subtitle mb-2">📍 ${req.city} • For: <strong>${req.forWhom}</strong></p>
+        <p class="card-subtitle mb-2">${req.city} • For: <strong>${req.forWhom}</strong></p>
         <p class="text-xs text-muted mb-3">Requested by: ${req.requesterName} (${req.requesterRole})</p>
         
         <div class="card-footer flex justify-between items-center">
@@ -731,7 +731,7 @@ function renderCampaignsGrid(container, list) {
   if (!list || list.length === 0) {
     container.innerHTML = `
       <div class="empty-state w-full">
-        <div class="empty-state-icon">🎯</div>
+        <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
         <h3>No Active Campaigns</h3>
         <p>No fundraising campaigns currently active.</p>
       </div>
@@ -824,7 +824,7 @@ async function submitMockDonation() {
     });
 
     closeModal('modal-donate-money');
-    showToast(`🎉 Payment of ₹${amount.toLocaleString()} Successful! Thank you! (Ref: ${res.paymentRef})`, 'success');
+    showToast(`Payment of ₹${amount.toLocaleString()} Successful! Thank you! (Ref: ${res.paymentRef})`, 'success');
     loadCampaigns();
     if (state.currentView === 'home') loadHome();
     if (state.currentView === 'disaster') loadDisasterRelief();
@@ -936,7 +936,7 @@ async function loadContributorDashboard() {
     if (!list || list.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🎁</div>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
           <h3>No donations yet</h3>
           <p>Click "Create Donation Post" to offer clothes, food, books or medicines!</p>
         </div>
@@ -951,7 +951,7 @@ async function loadContributorDashboard() {
         <div class="stepper">
           ${steps.map((st, i) => `
             <div class="step ${i < currentIndex ? 'done' : i === currentIndex ? 'active' : ''}">
-              <div class="step-circle">${i < currentIndex ? '✓' : i + 1}</div>
+              <div class="step-circle">${i < currentIndex ? '&check;' : i + 1}</div>
               <div class="step-label">${st}</div>
             </div>
             ${i < steps.length - 1 ? `<div class="step-line ${i < currentIndex ? 'done' : ''}"></div>` : ''}
@@ -965,7 +965,7 @@ async function loadContributorDashboard() {
             <div>
               <span class="badge badge-primary">${item.category}</span>
               <h3 class="card-title mt-1">${item.quantity} ${item.unit || 'units'} (${item.condition})</h3>
-              <p class="card-subtitle">📍 ${item.city} • Posted on ${new Date(item.createdAt).toLocaleDateString()}</p>
+              <p class="card-subtitle">${item.city} • Posted on ${new Date(item.createdAt).toLocaleDateString()}</p>
             </div>
             <span class="badge badge-status-${item.status}">${item.status}</span>
           </div>
@@ -1016,7 +1016,7 @@ async function loadNgoAvailableDonations() {
     if (available.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">📦</div>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
           <h3>No Incoming Contributor Donations Right Now</h3>
           <p>When contributors post supplies (food, clothes, medicine, etc.), they will appear here instantly for you to accept and collect!</p>
         </div>
@@ -1028,8 +1028,8 @@ async function loadNgoAvailableDonations() {
       <div class="grid-2 gap-3">
         ${available.map(item => {
           const photoHtml = item.photoPath 
-            ? `<img src="${item.photoPath}" alt="${item.category}" class="card-image" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>🎁</div>'"/>`
-            : `<div class="card-img-placeholder">🎁</div>`;
+            ? `<img src="${item.photoPath}" alt="${item.category}" class="card-image" onerror="this.outerHTML='<div class=\\\'card-img-placeholder\\\'\>No Photo</div>'"/>`
+            : `<div class="card-img-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
           return `
             <div class="card mb-3" style="border-top: 4px solid var(--primary);">
               ${photoHtml}
@@ -1037,7 +1037,7 @@ async function loadNgoAvailableDonations() {
                 <div>
                   <span class="badge badge-primary">${item.category}</span>
                   <h3 class="card-title mt-1">${item.quantity} ${item.unit || 'units'} (${item.condition || 'GOOD'} Condition)</h3>
-                  <p class="card-subtitle">📍 <strong>${item.city}</strong> • ${item.address || 'Address provided upon acceptance'}</p>
+                  <p class="card-subtitle"><strong>${item.city}</strong> • ${item.address || 'Address provided upon acceptance'}</p>
                 </div>
                 <span class="badge badge-status-POSTED">AVAILABLE</span>
               </div>
@@ -1048,7 +1048,7 @@ async function loadNgoAvailableDonations() {
               </div>
               <div class="card-footer flex justify-between items-center">
                 <span class="text-xs text-muted">Awaiting NGO Pickup</span>
-                <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">🤝 Accept for Distribution</button>
+                <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">Accept for Distribution</button>
               </div>
             </div>
           `;
@@ -1072,7 +1072,7 @@ async function loadNgoAcceptedDonations() {
     if (myAccepted.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🚚</div>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
           <h3>No Accepted Donations Yet</h3>
           <p>Switch to the "Available Contributor Posts" tab to accept supplies for distribution to beneficiaries!</p>
           <button class="btn btn-sm btn-primary mt-2" onclick="switchNgoTab('available')">View Available Contributor Posts</button>
@@ -1087,7 +1087,7 @@ async function loadNgoAcceptedDonations() {
           <div>
             <span class="badge badge-primary">${item.category}</span>
             <h3 class="card-title mt-1">${item.quantity} ${item.unit || 'units'}</h3>
-            <p class="card-subtitle">📍 ${item.city} • Contributor: ${item.contributorName} (${item.address || 'Pickup location'})</p>
+            <p class="card-subtitle">${item.city} • Contributor: ${item.contributorName} (${item.address || 'Pickup location'})</p>
           </div>
           <span class="badge badge-status-${item.status}">${item.status}</span>
         </div>
@@ -1096,13 +1096,13 @@ async function loadNgoAcceptedDonations() {
           <span class="text-xs text-muted">Current Stage: <strong>${item.status}</strong></span>
           <div class="flex gap-1">
             ${item.status === 'ACCEPTED' ? `
-              <button class="btn btn-sm btn-info" onclick="updateDonationStatus(${item.id}, 'COLLECTED')">📦 Mark Collected</button>
+              <button class="btn btn-sm btn-info" onclick="updateDonationStatus(${item.id}, 'COLLECTED')">Mark Collected</button>
             ` : ''}
             ${item.status === 'COLLECTED' ? `
-              <button class="btn btn-sm btn-success" onclick="openProofModal(${item.id})">📸 Mark Distributed & Upload Proof</button>
+              <button class="btn btn-sm btn-success" onclick="openProofModal(${item.id})">Mark Distributed & Upload Proof</button>
             ` : ''}
             ${item.status === 'DISTRIBUTED' ? `
-              <span class="badge badge-status-DISTRIBUTED">✅ Distributed to Beneficiaries</span>
+              <span class="badge badge-status-DISTRIBUTED">Distributed to Beneficiaries</span>
             ` : ''}
           </div>
         </div>
@@ -1123,7 +1123,7 @@ async function loadNgoMatches() {
     if (state.matches.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">💡</div>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"/></svg></div>
           <h3>No Match Suggestions Yet</h3>
           <p>When available donation posts match community requirements in the same city and category, our algorithm will suggest them here!</p>
         </div>
@@ -1139,7 +1139,7 @@ async function loadNgoMatches() {
       <div class="card mb-3" style="border-left: 4px solid var(--info);">
         <div class="flex justify-between items-center mb-2">
           <span class="badge badge-info">Score: ${m.matchScore}% Match</span>
-          <span class="badge badge-neutral">📍 ${city}</span>
+          <span class="badge badge-neutral">${city}</span>
         </div>
         <div class="grid-2 gap-2 mb-3">
           <div class="p-2" style="background: var(--surface-2); border-radius: var(--radius-sm);">
@@ -1222,7 +1222,7 @@ async function loadConsumerDashboard() {
     if (!list || list.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
           <h3>No Requirements Posted</h3>
           <p>Click "Post Requirement" to request food, clothes, or supplies for your care center!</p>
         </div>
@@ -1236,7 +1236,7 @@ async function loadConsumerDashboard() {
           <div>
             <span class="badge badge-urgency-${req.urgency}">${req.urgency} URGENCY</span>
             <h3 class="card-title mt-1">${req.item} (${req.quantity})</h3>
-            <p class="card-subtitle">📍 ${req.city} • For: ${req.forWhom}</p>
+            <p class="card-subtitle">${req.city} • For: ${req.forWhom}</p>
           </div>
           <span class="badge badge-neutral">${req.status}</span>
         </div>
@@ -1352,7 +1352,7 @@ async function handleCreateDisaster(e) {
     });
     form.reset();
     closeModal('modal-create-disaster');
-    showToast('🚨 Disaster Relief Campaign Broadcasted!', 'success');
+    showToast('Disaster Relief Campaign Broadcasted!', 'success');
     loadDisasterRelief();
     loadDisasterBanner();
   } catch (err) {
@@ -1369,7 +1369,7 @@ function addDisasterNeedRow() {
     <input type="text" class="form-control need-item-name" placeholder="Item name (e.g. Blankets)" required />
     <div class="flex gap-1">
       <input type="number" class="form-control need-item-qty" placeholder="Quantity" min="1" required />
-      <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">✕</button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="this.closest('.disaster-need-row').remove()">&times;</button>
     </div>
   `;
   container.appendChild(div);
