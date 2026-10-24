@@ -8,20 +8,45 @@ import com.ngoconnect.repository.CampaignRepository;
 import com.ngoconnect.repository.DisasterReliefRepository;
 import com.ngoconnect.repository.MaterialPledgeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DisasterReliefService {
 
     private final DisasterReliefRepository disasterReliefRepository;
     private final CampaignRepository campaignRepository;
     private final MaterialPledgeRepository materialPledgeRepository;
+
+    /**
+     * Automatically deactivates disaster relief campaigns that have exceeded their 7-day active window.
+     * Runs every minute to keep disaster relief active strictly for 7 days.
+     */
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void autoDeactivateExpiredDisasters() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
+        List<DisasterRelief> expired = disasterReliefRepository.findByActiveTrueAndCreatedAtBefore(cutoff);
+        if (!expired.isEmpty()) {
+            for (DisasterRelief dr : expired) {
+                dr.setActive(false);
+                if (dr.getCampaign() != null) {
+                    dr.getCampaign().setActive(false);
+                }
+            }
+            disasterReliefRepository.saveAll(expired);
+            log.info("Auto-deactivated {} disaster relief campaign(s) exceeding the 7-day active window.", expired.size());
+        }
+    }
 
     @Transactional
     public DisasterReliefDto.Response create(DisasterReliefDto.CreateRequest req, User ngo) {
@@ -42,6 +67,7 @@ public class DisasterReliefService {
         campaign.setDisasterRelief(true);
         campaign = campaignRepository.save(campaign);
 
+        LocalDateTime now = LocalDateTime.now();
         DisasterRelief dr = new DisasterRelief();
         dr.setCreatedByNgo(ngo);
         dr.setTitle(req.getTitle());
@@ -49,6 +75,9 @@ public class DisasterReliefService {
         dr.setCity(req.getCity());
         dr.setState(req.getState());
         dr.setCampaign(campaign);
+        dr.setCreatedAt(now);
+        // Disaster relief is active for exactly 7 days
+        dr.setExpiresAt(now.plusDays(7));
 
         // Add needs
         if (req.getNeeds() != null) {
@@ -65,7 +94,9 @@ public class DisasterReliefService {
         return DisasterReliefDto.Response.from(disasterReliefRepository.save(dr));
     }
 
+    @Transactional
     public List<DisasterReliefDto.Response> getActive() {
+        autoDeactivateExpiredDisasters();
         return disasterReliefRepository.findByActiveOrderByCreatedAtDesc(true)
             .stream().map(DisasterReliefDto.Response::from).collect(Collectors.toList());
     }
@@ -77,6 +108,12 @@ public class DisasterReliefService {
     @Transactional
     public DisasterReliefDto.Response pledge(Long id, DisasterReliefDto.PledgeRequest req, User contributor) {
         DisasterRelief dr = findEntityById(id);
+        if (dr.getCreatedAt() != null && dr.getCreatedAt().plusDays(7).isBefore(LocalDateTime.now())) {
+            dr.setActive(false);
+            if (dr.getCampaign() != null) dr.getCampaign().setActive(false);
+            disasterReliefRepository.save(dr);
+            throw new IllegalStateException("This disaster relief has concluded (active for 7 days only).");
+        }
         if (!dr.isActive()) throw new IllegalStateException("This disaster relief is no longer active");
 
         MaterialPledge pledge = new MaterialPledge();
@@ -100,6 +137,13 @@ public class DisasterReliefService {
     public CampaignDto.Response donateMoney(Long id, CampaignDto.DonateRequest req, User contributor,
                                              CampaignService campaignService) {
         DisasterRelief dr = findEntityById(id);
+        if (dr.getCreatedAt() != null && dr.getCreatedAt().plusDays(7).isBefore(LocalDateTime.now())) {
+            dr.setActive(false);
+            if (dr.getCampaign() != null) dr.getCampaign().setActive(false);
+            disasterReliefRepository.save(dr);
+            throw new IllegalStateException("This disaster relief has concluded (active for 7 days only).");
+        }
+        if (!dr.isActive()) throw new IllegalStateException("This disaster relief is no longer active");
         if (dr.getCampaign() == null) throw new ResourceNotFoundException("No money campaign linked");
         return campaignService.donate(dr.getCampaign().getId(), req, contributor);
     }

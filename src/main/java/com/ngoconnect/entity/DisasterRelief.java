@@ -48,4 +48,9 @@ public class DisasterRelief {
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /**
+     * Emergency disaster relief is active for exactly 7 days from launch.
+     */
+    private LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
 }

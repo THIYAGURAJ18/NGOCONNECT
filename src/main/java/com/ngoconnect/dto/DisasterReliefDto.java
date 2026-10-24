@@ -92,6 +92,9 @@ public class DisasterReliefDto {
         private List<ReliefNeedResponse> needs;
         private boolean active;
         private String createdAt;
+        private String expiresAt;
+        private long daysRemaining;
+        private long hoursRemaining;
 
         public static Response from(DisasterRelief dr) {
             Response r = new Response();
@@ -104,6 +107,14 @@ public class DisasterReliefDto {
             r.setState(dr.getState());
             r.setActive(dr.isActive());
             r.setCreatedAt(dr.getCreatedAt() != null ? dr.getCreatedAt().toString() : null);
+
+            java.time.LocalDateTime exp = dr.getExpiresAt() != null
+                ? dr.getExpiresAt()
+                : (dr.getCreatedAt() != null ? dr.getCreatedAt().plusDays(7) : java.time.LocalDateTime.now().plusDays(7));
+            r.setExpiresAt(exp.toString());
+            long hours = java.time.Duration.between(java.time.LocalDateTime.now(), exp).toHours();
+            r.setHoursRemaining(Math.max(0, hours));
+            r.setDaysRemaining(Math.max(0, (hours + 23) / 24));
             if (dr.getCampaign() != null) {
                 r.setCampaignId(dr.getCampaign().getId());
                 r.setMoneyTarget(dr.getCampaign().getTargetAmount());

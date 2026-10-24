@@ -433,11 +433,15 @@ async function loadDisasterBanner() {
         `<span class="disaster-banner-item" onclick="openDisasterDetail(${d.id})">${n.itemName} (${n.quantityPledged}/${n.quantityNeeded})</span>`
       ).join('') : '';
 
+      const timeInfo = d.daysRemaining !== undefined && d.daysRemaining !== null
+        ? (d.daysRemaining > 0 ? `${d.daysRemaining}d remaining` : `${d.hoursRemaining || 1}h remaining`)
+        : '7-day window';
+
       banner.innerHTML = `
         <div class="disaster-banner-inner">
           <div class="disaster-banner-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
           <div class="disaster-banner-content">
-            <div class="disaster-banner-title">EMERGENCY RELIEF ACTIVE: ${d.title} (${d.city})</div>
+            <div class="disaster-banner-title">EMERGENCY RELIEF ACTIVE (Active for 7 Days • ${timeInfo}): ${d.title} (${d.city})</div>
             <div class="disaster-banner-items">
               ${itemsHtml}
               <span class="disaster-banner-item" onclick="navigateTo('disaster')">View All Needs →</span>
@@ -489,11 +493,24 @@ async function loadDisasterRelief() {
         </div>
       ` : '';
 
+      const timeBadge = d.daysRemaining !== undefined && d.daysRemaining !== null ? `
+        <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.72rem; font-weight: 700;">
+          ⏱️ Active for 7 Days (${d.daysRemaining > 0 ? d.daysRemaining + ' days left' : (d.hoursRemaining || 1) + ' hrs left'})
+        </span>
+      ` : `
+        <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.72rem; font-weight: 700;">
+          ⏱️ Active for 7 Days
+        </span>
+      `;
+
       return `
         <div class="card" style="border-left: 4px solid var(--danger);">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <span class="badge badge-danger">EMERGENCY RELIEF</span>
+              <div class="flex items-center gap-1 mb-1">
+                <span class="badge badge-danger">EMERGENCY RELIEF</span>
+                ${timeBadge}
+              </div>
               <h3 class="card-title mt-1">${d.title}</h3>
               <p class="card-subtitle">${d.city} • Organized by ${d.createdByNgoName || d.organizationName || 'Verified NGO'}</p>
             </div>
@@ -1313,15 +1330,20 @@ async function loadContributorEmergencyAlert() {
     }
     const d = active[0];
     container.classList.remove('hidden');
+    const timeRemainingText = d.daysRemaining !== undefined && d.daysRemaining !== null
+      ? `• Active for 7 Days (${d.daysRemaining > 0 ? d.daysRemaining + 'd left' : (d.hoursRemaining || 1) + 'h left'})`
+      : '• Active for 7 Days';
+
     container.innerHTML = `
       <div class="contrib-emergency-banner">
         <div style="flex: 1; min-width: 280px;">
-          <div class="flex items-center gap-2 mb-1">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span class="contrib-emergency-tag">
               <span style="width: 7px; height: 7px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></span>
               Live Emergency Relief Alert
             </span>
-            <span class="text-xs font-semibold text-muted">${d.city}</span>
+            <span class="text-xs font-semibold" style="color: #dc2626; font-weight: 700;">${timeRemainingText}</span>
+            <span class="text-xs font-semibold text-muted">• ${d.city}</span>
           </div>
           <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem;">${d.title}</h3>
           <p style="color: #475569; font-size: 0.88rem; margin-bottom: 0.65rem;">${d.description || 'Humanitarian emergency response in progress. Critical supplies needed.'}</p>
