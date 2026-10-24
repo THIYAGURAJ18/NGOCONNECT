@@ -66,6 +66,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/requirements/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/campaigns/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/disaster/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/carecenters/**").permitAll()
                 // Admin only
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Everything else requires auth

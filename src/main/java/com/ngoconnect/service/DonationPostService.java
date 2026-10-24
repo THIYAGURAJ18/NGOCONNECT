@@ -8,6 +8,8 @@ import com.ngoconnect.exception.ResourceNotFoundException;
 import com.ngoconnect.repository.DonationPostRepository;
 import com.ngoconnect.repository.DistributionUpdateRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +19,32 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DonationPostService {
 
     private final DonationPostRepository donationPostRepository;
     private final DistributionUpdateRepository distributionUpdateRepository;
+
+    /**
+     * Automatically deletes distributed posts after 2 days (48 hours).
+     * Runs periodically every minute to keep database and website clean.
+     */
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void cleanupOldDistributedPosts() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(2);
+        List<DonationPost> expired = donationPostRepository.findByStatusAndDistributedAtBefore(
+            DonationPost.Status.DISTRIBUTED, cutoff
+        );
+        if (!expired.isEmpty()) {
+            for (DonationPost post : expired) {
+                List<DistributionUpdate> updates = distributionUpdateRepository.findByDonationPostOrderByUpdatedAtDesc(post);
+                distributionUpdateRepository.deleteAll(updates);
+                donationPostRepository.delete(post);
+            }
+            log.info("Auto-cleanup: Deleted {} distributed donation post(s) older than 2 days.", expired.size());
+        }
+    }
 
     @Transactional
     public DonationPostDto.Response create(DonationPostDto.CreateRequest req, User contributor, String photoPath) {
@@ -38,17 +62,20 @@ public class DonationPostService {
     }
 
     public List<DonationPostDto.Response> browse(String category, String city, String status, User currentUser) {
+        cleanupOldDistributedPosts();
         DonationPost.Status statusEnum = null;
         if (status != null && !status.isBlank()) {
             try { statusEnum = DonationPost.Status.valueOf(status.toUpperCase().trim()); } catch (Exception ignored) {}
         }
         String cleanCategory = (category != null && !category.isBlank()) ? category.trim() : null;
         String cleanCity = (city != null && !city.isBlank()) ? city.trim() : null;
+        LocalDateTime activeCutoff = LocalDateTime.now().minusDays(2);
 
         return donationPostRepository.findWithFilters(
             cleanCategory,
             cleanCity,
-            statusEnum
+            statusEnum,
+            activeCutoff
         ).stream().map(DonationPostDto.Response::from).collect(Collectors.toList());
     }
 
@@ -57,16 +84,27 @@ public class DonationPostService {
     }
 
     public DonationPostDto.Response getById(Long id) {
-        return DonationPostDto.Response.from(findEntityById(id));
+        DonationPost post = findEntityById(id);
+        if (post.getStatus() == DonationPost.Status.DISTRIBUTED && 
+            post.getDistributedAt() != null && 
+            post.getDistributedAt().isBefore(LocalDateTime.now().minusDays(2))) {
+            cleanupOldDistributedPosts();
+            throw new ResourceNotFoundException("Donation post has expired and was deleted: " + id);
+        }
+        return DonationPostDto.Response.from(post);
     }
 
     public List<DonationPostDto.Response> getMyPosts(User contributor) {
-        return donationPostRepository.findByContributorOrderByCreatedAtDesc(contributor)
+        cleanupOldDistributedPosts();
+        LocalDateTime activeCutoff = LocalDateTime.now().minusDays(2);
+        return donationPostRepository.findActiveByContributor(contributor, activeCutoff)
             .stream().map(DonationPostDto.Response::from).collect(Collectors.toList());
     }
 
     public List<DonationPostDto.Response> getMyAcceptedPosts(User ngo) {
-        return donationPostRepository.findByAcceptedByNgoOrderByAcceptedAtDesc(ngo)
+        cleanupOldDistributedPosts();
+        LocalDateTime activeCutoff = LocalDateTime.now().minusDays(2);
+        return donationPostRepository.findActiveByAcceptedByNgo(ngo, activeCutoff)
             .stream().map(DonationPostDto.Response::from).collect(Collectors.toList());
     }
 

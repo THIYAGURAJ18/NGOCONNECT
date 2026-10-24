@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -18,15 +19,35 @@ public interface DonationPostRepository extends JpaRepository<DonationPost, Long
 
     List<DonationPost> findByAcceptedByNgoOrderByAcceptedAtDesc(User ngo);
 
+    List<DonationPost> findByStatusAndDistributedAtBefore(DonationPost.Status status, LocalDateTime cutoff);
+
     @Query("SELECT d FROM DonationPost d WHERE " +
            "(:category IS NULL OR LOWER(d.category) = LOWER(:category)) AND " +
            "(:city IS NULL OR LOWER(d.city) = LOWER(:city)) AND " +
-           "(:status IS NULL OR d.status = :status) " +
+           "(:status IS NULL OR d.status = :status) AND " +
+           "(d.status <> 'DISTRIBUTED' OR d.distributedAt IS NULL OR d.distributedAt >= :activeCutoff) " +
            "ORDER BY d.createdAt DESC")
     List<DonationPost> findWithFilters(
         @Param("category") String category,
         @Param("city") String city,
-        @Param("status") DonationPost.Status status
+        @Param("status") DonationPost.Status status,
+        @Param("activeCutoff") LocalDateTime activeCutoff
+    );
+
+    @Query("SELECT d FROM DonationPost d WHERE d.contributor = :contributor AND " +
+           "(d.status <> 'DISTRIBUTED' OR d.distributedAt IS NULL OR d.distributedAt >= :activeCutoff) " +
+           "ORDER BY d.createdAt DESC")
+    List<DonationPost> findActiveByContributor(
+        @Param("contributor") User contributor,
+        @Param("activeCutoff") LocalDateTime activeCutoff
+    );
+
+    @Query("SELECT d FROM DonationPost d WHERE d.acceptedByNgo = :ngo AND " +
+           "(d.status <> 'DISTRIBUTED' OR d.distributedAt IS NULL OR d.distributedAt >= :activeCutoff) " +
+           "ORDER BY d.acceptedAt DESC")
+    List<DonationPost> findActiveByAcceptedByNgo(
+        @Param("ngo") User ngo,
+        @Param("activeCutoff") LocalDateTime activeCutoff
     );
 
     // For matching: find POSTED donations in a city with a given category

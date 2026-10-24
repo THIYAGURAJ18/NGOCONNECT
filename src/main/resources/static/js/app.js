@@ -584,7 +584,17 @@ async function loadDonations() {
 }
 
 function renderDonationsGrid(container, list) {
-  if (!list || list.length === 0) {
+  const now = Date.now();
+  const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+  // Filter out any distributed post older than 2 days
+  const activeList = (list || []).filter(item => {
+    if (item.status === 'DISTRIBUTED' && item.distributedAt) {
+      return (now - new Date(item.distributedAt).getTime()) < twoDaysMs;
+    }
+    return true;
+  });
+
+  if (!activeList || activeList.length === 0) {
     const isContributor = state.user && state.user.role === 'CONTRIBUTOR';
     container.innerHTML = `
       <div class="empty-state w-full">
@@ -596,13 +606,26 @@ function renderDonationsGrid(container, list) {
     return;
   }
 
-  container.innerHTML = list.map(item => {
+  container.innerHTML = activeList.map(item => {
     const isNgo = state.user && state.user.role === 'NGO';
     const isConsumer = state.user && state.user.role === 'CONSUMER';
     const canAccept = isNgo && item.status === 'POSTED';
     const photoHtml = item.photoPath 
       ? `<img src="${item.photoPath}" alt="${item.category}" class="card-image" onerror="this.outerHTML='<div class=\\\'card-img-placeholder\\\'\>No Photo</div>'"/>`
       : `<div class="card-img-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+
+    let distributedInfoHtml = '';
+    if (item.status === 'DISTRIBUTED') {
+      const remainingHours = item.distributedAt 
+        ? Math.max(0, Math.ceil((new Date(item.distributedAt).getTime() + twoDaysMs - now) / (1000 * 60 * 60)))
+        : 48;
+      distributedInfoHtml = `
+        <div class="alert alert-warning p-2 mt-2 text-xs flex items-center justify-between" style="border-radius: var(--radius-sm);">
+          <span>Distributed to beneficiaries</span>
+          <span class="font-semibold text-danger">Auto-deletes in ${remainingHours}h</span>
+        </div>
+      `;
+    }
 
     return `
       <div class="card">
@@ -613,14 +636,17 @@ function renderDonationsGrid(container, list) {
         </div>
         <h3 class="card-title">${item.quantity} ${item.unit || 'units'} (${item.condition || 'GOOD'} condition)</h3>
         <p class="card-subtitle mb-2">${item.city} • by <strong>${item.contributorName}</strong></p>
-        <p class="text-sm text-muted mb-3">${item.description || 'No description provided.'}</p>
+        <p class="text-sm text-muted mb-2">${item.description || 'No description provided.'}</p>
+        ${distributedInfoHtml}
         
-        <div class="card-footer flex justify-between items-center">
+        <div class="card-footer flex justify-between items-center mt-2">
           <span class="text-xs text-light">${new Date(item.createdAt).toLocaleDateString()}</span>
           ${canAccept ? `
             <button class="btn btn-sm btn-primary" onclick="acceptDonationPost(${item.id})">Accept for Distribution</button>
           ` : isConsumer ? `
             <span class="text-xs text-primary font-semibold">Available for Care Center</span>
+          ` : item.status === 'DISTRIBUTED' ? `
+            <span class="badge badge-warning text-xs">Clearing in 2 days</span>
           ` : `
             <span class="text-xs text-muted">Status: <strong>${item.status}</strong></span>
           `}
@@ -926,61 +952,583 @@ async function loadDashboard() {
   }
 }
 
-// 1. Contributor Dashboard
+// 1. Contributor Dashboard & Profile Workspace
+let contributorStatsCache = null;
+
 async function loadContributorDashboard() {
   const container = document.getElementById('contributor-my-donations');
+  const headerContainer = document.getElementById('contributor-profile-header');
+  if (container) container.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
+  if (headerContainer) headerContainer.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
+
+  try {
+    const list = await api('/api/donations/my') || [];
+    state.contributorDonations = list;
+
+    // Calculate stats & impact points
+    const stats = calculateContributorStats(list);
+    contributorStatsCache = stats;
+
+    // 1. Render Profile Header & Stat Pills (Matches Screenshot Layout)
+    if (headerContainer && state.user) {
+      const u = state.user;
+      const firstName = (u.name || 'Friend').split(' ')[0];
+      const now = new Date();
+      const monthYear = now.toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+
+      headerContainer.innerHTML = `
+        <div class="mb-4">
+          <!-- Kicker & Badges -->
+          <div class="flex justify-between items-center flex-wrap gap-2 mb-2">
+            <div class="text-xs uppercase font-bold" style="letter-spacing: 1.2px; color: #154734;">
+              YOUR IMPACT SPACE · ${monthYear}
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="badge badge-success text-xs">✓ Verified Contributor</span>
+              ${u.aadhaarVerified ? `<span class="badge text-xs" style="background: #e8f5ee; color: #154734; border: 1px solid #c2e2cf;">✓ Aadhaar Verified</span>` : ''}
+              <span class="points-tier-badge text-xs" style="margin: 0;">${stats.tierIcon} Level ${stats.level}: ${stats.tierName}</span>
+            </div>
+          </div>
+
+          <!-- Greeting Header -->
+          <h1 style="color: #0f172a; font-size: clamp(1.8rem, 4vw, 2.35rem); font-weight: 800; margin-bottom: 0.35rem; letter-spacing: -0.025em;">
+            Good morning, ${firstName} ✦
+          </h1>
+          <p style="color: #64748b; font-size: 0.98rem; margin-bottom: 1.75rem;">
+            A little kindness goes a long way. Here's where your generosity can make a difference.
+          </p>
+
+          <!-- 3 Crisp White Metric Cards Row (Matches Screenshot Design) -->
+          <div class="grid-3 gap-3 mb-4">
+            <!-- Card 1: Total donations made -->
+            <div class="card p-3" style="position: relative; border-radius: 18px; border: 1px solid #e5ebe6; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div class="flex justify-between items-start mb-2">
+                <span style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Total donations made</span>
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #eaf5ef; color: #154734; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                  ♥
+                </div>
+              </div>
+              <div style="font-size: 2.25rem; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 0.5rem;">
+                ${stats.total}
+              </div>
+              <div class="text-xs" style="color: #10b981; font-weight: 600;">
+                ↑ Active contributor · Keep it going
+              </div>
+            </div>
+
+            <!-- Card 2: Active in pipeline -->
+            <div class="card p-3" style="position: relative; border-radius: 18px; border: 1px solid #e5ebe6; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div class="flex justify-between items-start mb-2">
+                <span style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Active in pipeline</span>
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #eaf5ef; color: #154734; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                  🚚
+                </div>
+              </div>
+              <div style="font-size: 2.25rem; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 0.5rem;">
+                ${stats.active}
+              </div>
+              <div class="text-xs" style="color: #10b981; font-weight: 600;">
+                ↑ Community logistics in progress
+              </div>
+            </div>
+
+            <!-- Card 3: Delivered to care centers -->
+            <div class="card p-3" style="position: relative; border-radius: 18px; border: 1px solid #e5ebe6; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div class="flex justify-between items-start mb-2">
+                <span style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Delivered to care centers</span>
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #eaf5ef; color: #154734; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                  🏥
+                </div>
+              </div>
+              <div style="font-size: 2.25rem; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 0.5rem;">
+                ${stats.distributed}
+              </div>
+              <div class="text-xs" style="color: #64748b; font-weight: 500;">
+                Across your local community
+              </div>
+            </div>
+          </div>
+
+          <!-- Hand2Heart Signature Kindness Spotlight Card (Matches Screenshot Hero) -->
+          <div class="p-4 mb-4" style="background: #154734; border-radius: 20px; color: #ffffff; position: relative; overflow: hidden; box-shadow: 0 8px 24px -4px rgba(21, 71, 52, 0.35);">
+            <div style="position: absolute; right: -30px; bottom: -30px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+            <div style="position: relative; z-index: 2; max-width: 700px;">
+              <div class="text-xs uppercase font-bold mb-2" style="letter-spacing: 1.5px; color: #86efac;">
+                YOUR KINDNESS, IN ACTION
+              </div>
+              <h2 style="color: #ffffff; font-size: clamp(1.4rem, 3.2vw, 1.75rem); font-weight: 800; line-height: 1.25; margin-bottom: 0.65rem;">
+                There's someone who needs exactly what you have.
+              </h2>
+              <p style="color: #d1fae5; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.25rem;">
+                Our smart matching engine connects donations with verified care centers and orphanages based on real needs, urgency, and distance.
+              </p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button class="btn btn-sm" style="background: #ffffff; color: #154734; font-weight: 700; border-radius: var(--radius-full); padding: 0.6rem 1.4rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" onclick="openModal('modal-create-donation')">
+                  + Make a Donation
+                </button>
+                <button class="btn btn-sm" style="background: transparent; color: #ffffff; border: 1.5px solid rgba(255,255,255,0.4); border-radius: var(--radius-full); padding: 0.6rem 1.4rem;" onclick="switchContributorTab('matches')">
+                  Explore Need Matches →
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      `;
+    }
+
+    // 2. Reflect Live Emergency Relief Broadcast
+    await loadContributorEmergencyAlert();
+
+    // 3. Render Tracking List
+    const badge = document.getElementById('contrib-tracking-badge');
+    if (badge) badge.textContent = list.length;
+    renderContributorTracking(list);
+
+    // 4. Load Smart Care Center Need Matches
+    loadContributorNeedMatches();
+
+    // 5. Load Nearby Care Centers
+    loadNearbyCareCenters();
+
+    // 6. Render Points View
+    renderContributorPointsView(stats);
+
+  } catch (err) {
+    if (container) container.innerHTML = `<div class="alert alert-error">Failed to load contributor profile: ${err.message}</div>`;
+  }
+}
+
+function calculateContributorStats(donations) {
+  const total = (donations || []).length;
+  let active = 0;
+  let distributed = 0;
+  let points = 0;
+
+  (donations || []).forEach(d => {
+    if (d.status === 'POSTED') {
+      active++;
+      points += 50;
+    } else if (d.status === 'ACCEPTED') {
+      active++;
+      points += 150;
+    } else if (d.status === 'COLLECTED') {
+      active++;
+      points += 250;
+    } else if (d.status === 'DISTRIBUTED') {
+      distributed++;
+      points += 550;
+    }
+  });
+
+  // Calculate Tier
+  let level = 1;
+  let tierName = 'Community Starter';
+  let tierIcon = '🌟';
+  let nextLevelPoints = 200;
+  let prevLevelPoints = 0;
+
+  if (points >= 3500) {
+    level = 6;
+    tierName = 'Champion of Hope';
+    tierIcon = '👑';
+    nextLevelPoints = 5000;
+    prevLevelPoints = 3500;
+  } else if (points >= 2000) {
+    level = 5;
+    tierName = 'Gold Philanthropist';
+    tierIcon = '🥇';
+    nextLevelPoints = 3500;
+    prevLevelPoints = 2000;
+  } else if (points >= 1000) {
+    level = 4;
+    tierName = 'Silver Benefactor';
+    tierIcon = '🥈';
+    nextLevelPoints = 2000;
+    prevLevelPoints = 1000;
+  } else if (points >= 500) {
+    level = 3;
+    tierName = 'Bronze Giver';
+    tierIcon = '🥉';
+    nextLevelPoints = 1000;
+    prevLevelPoints = 500;
+  } else if (points >= 200) {
+    level = 2;
+    tierName = 'Kind Neighbor';
+    tierIcon = '🌿';
+    nextLevelPoints = 500;
+    prevLevelPoints = 200;
+  }
+
+  const progressPercent = Math.min(100, Math.round(((points - prevLevelPoints) / Math.max(1, (nextLevelPoints - prevLevelPoints))) * 100));
+
+  return { total, active, distributed, points, level, tierName, tierIcon, nextLevelPoints, progressPercent };
+}
+
+function switchContributorTab(tabName) {
+  const tabs = ['tracking', 'matches', 'carecenters', 'rewards'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-btn-contrib-${t}`);
+    const pane = document.getElementById(`contrib-tab-${t}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (pane) pane.classList.toggle('hidden', t !== tabName);
+  });
+}
+
+function filterContributorTracking() {
+  const keyword = (document.getElementById('contrib-search-tracking')?.value || '').toLowerCase().trim();
+  const statusFilter = document.getElementById('contrib-filter-status')?.value || '';
+  const all = state.contributorDonations || [];
+
+  const filtered = all.filter(item => {
+    const matchStatus = !statusFilter || item.status === statusFilter;
+    const matchKeyword = !keyword || 
+      (item.category && item.category.toLowerCase().includes(keyword)) ||
+      (item.city && item.city.toLowerCase().includes(keyword)) ||
+      (item.description && item.description.toLowerCase().includes(keyword)) ||
+      (item.acceptedByNgoName && item.acceptedByNgoName.toLowerCase().includes(keyword));
+    return matchStatus && matchKeyword;
+  });
+
+  renderContributorTracking(filtered);
+}
+
+function renderContributorTracking(list) {
+  const container = document.getElementById('contributor-my-donations');
+  if (!container) return;
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+        <h3>No Donations in Tracking</h3>
+        <p>No donation posts match your search or filter. You can click "+ Make a Donation" to start your donation journey!</p>
+        <button class="btn btn-sm btn-primary mt-2" onclick="openModal('modal-create-donation')">+ Make a Donation</button>
+      </div>
+    `;
+    return;
+  }
+
+  const catIcons = {
+    'Food': '🥫',
+    'Clothes': '👕',
+    'Medicine': '💊',
+    'Books': '📚',
+    'Electronics': '💻',
+    'Other': '📦'
+  };
+
+  const stages = [
+    { key: 'POSTED', label: 'Prepared & Posted' },
+    { key: 'ACCEPTED', label: 'Accepted by NGO' },
+    { key: 'COLLECTED', label: 'In Transit' },
+    { key: 'DISTRIBUTED', label: 'Delivered' }
+  ];
+
+  container.innerHTML = list.map(item => {
+    const icon = catIcons[item.category] || '📦';
+    const currentIdx = stages.findIndex(s => s.key === item.status);
+    const fillPercent = currentIdx === 0 ? 10 : currentIdx === 1 ? 40 : currentIdx === 2 ? 70 : 100;
+
+    let autoDeleteHtml = '';
+    if (item.status === 'DISTRIBUTED') {
+      const remainingHours = item.distributedAt 
+        ? Math.max(0, Math.ceil((new Date(item.distributedAt).getTime() + 2 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60)))
+        : 48;
+      autoDeleteHtml = `
+        <span class="badge badge-warning text-xs">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; vertical-align:middle; margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Auto-clears in ${remainingHours}h
+        </span>
+      `;
+    }
+
+    return `
+      <div class="tracking-card">
+        <div class="tracking-card-header">
+          <div class="flex items-start gap-2">
+            <div class="tracking-item-icon">${icon}</div>
+            <div>
+              <div class="flex items-center gap-1 flex-wrap mb-1">
+                <span class="badge badge-primary text-xs">${item.category}</span>
+                <span class="text-xs text-muted font-semibold">#DON-${item.id}</span>
+                <span class="text-xs text-light">• ${item.condition || 'GOOD'} Condition</span>
+              </div>
+              <h3 class="card-title" style="margin: 0; font-size: 1.15rem;">${item.quantity} ${item.unit || 'units'} (${item.category})</h3>
+              <p class="text-xs text-muted" style="margin-top: 0.2rem;">
+                Posted on ${new Date(item.createdAt).toLocaleDateString()} in ${item.city}
+                ${item.acceptedByNgoName ? ` • Handover Partner: <strong>${item.acceptedByNgoName}</strong>` : ' • Awaiting NGO pickup partner'}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="badge badge-status-${item.status}">${item.status === 'DISTRIBUTED' ? '✓ Delivered' : item.status === 'COLLECTED' ? '🚚 In Transit' : item.status}</span>
+            ${autoDeleteHtml}
+          </div>
+        </div>
+
+        ${item.description ? `<p class="text-sm text-muted mb-2">"${item.description}"</p>` : ''}
+
+        <!-- Horizontal Pipeline Tracker -->
+        <div class="tracking-track-line">
+          <div class="tracking-track-bar">
+            <div class="tracking-track-fill" style="width: ${fillPercent}%;"></div>
+          </div>
+          ${stages.map((st, i) => {
+            const isDone = i < currentIdx;
+            const isCurrent = i === currentIdx;
+            return `
+              <div class="track-node ${isDone ? 'completed' : isCurrent ? 'current' : ''}">
+                <div class="track-node-circle">
+                  ${isDone ? '✓' : i + 1}
+                </div>
+                <div class="track-node-title">${st.label}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="tracking-card-footer mt-2">
+          <span>
+            ${item.status === 'POSTED' ? '📍 Waiting for a verified local NGO to accept and assign logistics' :
+              item.status === 'ACCEPTED' ? `🤝 Accepted by ${item.acceptedByNgoName || 'NGO Partner'} on ${item.acceptedAt ? new Date(item.acceptedAt).toLocaleDateString() : 'recent'}` :
+              item.status === 'COLLECTED' ? `🚚 Picked up from your address • En route to beneficiary care center` :
+              `🎉 Handed over to care center beneficiaries on ${item.distributedAt ? new Date(item.distributedAt).toLocaleDateString() : 'recent'}`}
+          </span>
+          <span class="text-xs font-semibold text-primary">Live Tracking Active</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadContributorEmergencyAlert() {
+  const container = document.getElementById('contributor-emergency-alert');
+  if (!container) return;
+  try {
+    const active = await api('/api/disaster/active');
+    if (!active || active.length === 0) {
+      container.classList.add('hidden');
+      return;
+    }
+    const d = active[0];
+    container.classList.remove('hidden');
+    container.innerHTML = `
+      <div class="contrib-emergency-banner">
+        <div style="flex: 1; min-width: 280px;">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="contrib-emergency-tag">
+              <span style="width: 7px; height: 7px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></span>
+              Live Emergency Relief Alert
+            </span>
+            <span class="text-xs font-semibold text-muted">${d.city}</span>
+          </div>
+          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem;">${d.title}</h3>
+          <p style="color: #475569; font-size: 0.88rem; margin-bottom: 0.65rem;">${d.description || 'Humanitarian emergency response in progress. Critical supplies needed.'}</p>
+          <div class="flex flex-wrap gap-1">
+            ${(d.needs || []).slice(0, 3).map(n => `
+              <span class="chip" style="background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 600;">
+                ${n.itemName}: ${n.quantityPledged}/${n.quantityNeeded} ${n.unit || ''}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sm btn-danger" onclick="openDisasterDetail(${d.id})">Pledge Supplies</button>
+          <button class="btn btn-sm btn-outline" onclick="navigateTo('disaster')">Emergency Hub →</button>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    container.classList.add('hidden');
+  }
+}
+
+async function loadContributorNeedMatches() {
+  const container = document.getElementById('contributor-need-matches');
   if (!container) return;
   container.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
   try {
-    const list = await api('/api/donations/my');
-    if (!list || list.length === 0) {
+    const reqs = await api('/api/requirements');
+    const badge = document.getElementById('contrib-matches-badge');
+    const unfulfilled = (reqs || []).filter(r => !r.fulfilled);
+    if (badge) badge.textContent = unfulfilled.length;
+
+    if (unfulfilled.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
-          <h3>No donations yet</h3>
-          <p>Click "Create Donation Post" to offer clothes, food, books or medicines!</p>
+          <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <h3>No Open Requirements Found</h3>
+          <p>Care centers in your network are currently supplied. You can post a general donation anytime!</p>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = list.map(item => {
-      const steps = ['POSTED', 'ACCEPTED', 'COLLECTED', 'DISTRIBUTED'];
-      const currentIndex = steps.indexOf(item.status);
-      const stepperHtml = `
-        <div class="stepper">
-          ${steps.map((st, i) => `
-            <div class="step ${i < currentIndex ? 'done' : i === currentIndex ? 'active' : ''}">
-              <div class="step-circle">${i < currentIndex ? '&check;' : i + 1}</div>
-              <div class="step-label">${st}</div>
+    // Sort by: same city first, then HIGH urgency
+    const userCity = (state.user && state.user.city) ? state.user.city.toLowerCase().trim() : '';
+    unfulfilled.sort((a, b) => {
+      const aCityMatch = a.city && a.city.toLowerCase().trim() === userCity;
+      const bCityMatch = b.city && b.city.toLowerCase().trim() === userCity;
+      if (aCityMatch && !bCityMatch) return -1;
+      if (!aCityMatch && bCityMatch) return 1;
+      if (a.urgency === 'HIGH' && b.urgency !== 'HIGH') return -1;
+      if (a.urgency !== 'HIGH' && b.urgency === 'HIGH') return 1;
+      return 0;
+    });
+
+    container.innerHTML = `
+      <div class="grid-2">
+        ${unfulfilled.map(req => {
+          const isSameCity = req.city && req.city.toLowerCase().trim() === userCity;
+          const matchScore = isSameCity ? (req.urgency === 'HIGH' ? 98 : 92) : (req.urgency === 'HIGH' ? 88 : 78);
+          return `
+            <div class="recommend-card">
+              <div>
+                <div class="flex justify-between items-start mb-2 flex-wrap gap-1">
+                  <span class="recommend-badge">
+                    <span>✨</span> ${matchScore}% Match ${isSameCity ? '• In Your City' : ''}
+                  </span>
+                  <span class="badge ${req.urgency === 'HIGH' ? 'badge-danger' : 'badge-warning'} text-xs">${req.urgency || 'NORMAL'} NEED</span>
+                </div>
+                <h3 class="card-title mt-1" style="font-size: 1.1rem;">${req.item} (${req.quantityNeeded} ${req.unit || 'units'})</h3>
+                <p class="text-xs text-muted mb-2">
+                  Care Center: <strong>${req.postedByName}</strong> (${req.city || 'Nearby'})
+                  ${req.forWhom ? ` • For: ${req.forWhom}` : ''}
+                </p>
+                <p class="text-sm text-muted mb-3">${req.description || 'Care center requirement awaiting generous community donations.'}</p>
+              </div>
+              <div class="card-footer flex justify-between items-center mt-2 pt-2 border-top">
+                <span class="text-xs text-light">${new Date(req.createdAt).toLocaleDateString()}</span>
+                <button class="btn btn-sm btn-success" onclick="openDonateForNeed('${req.item}', '${req.city || ''}', 'Fulfilling need for ${req.postedByName}: ${req.quantityNeeded} ${req.unit || 'units'} of ${req.item}')">+ Fulfill Need</button>
+              </div>
             </div>
-            ${i < steps.length - 1 ? `<div class="step-line ${i < currentIndex ? 'done' : ''}"></div>` : ''}
-          `).join('')}
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">Failed to load care center needs: ${err.message}</div>`;
+  }
+}
+
+async function loadNearbyCareCenters(searchCity) {
+  const container = document.getElementById('contributor-nearby-carecenters');
+  if (!container) return;
+  const userCity = searchCity !== undefined ? searchCity : (state.user && state.user.city ? state.user.city : '');
+  try {
+    const list = await api('/api/carecenters' + (userCity ? `?city=${encodeURIComponent(userCity)}` : ''));
+    if (!list || list.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state w-full">
+          <h3>No Care Centers Found</h3>
+          <p>No registered care centers found matching "${userCity}".</p>
         </div>
       `;
+      return;
+    }
 
+    container.innerHTML = list.map(c => {
+      const isLocal = userCity && c.city && c.city.toLowerCase() === userCity.toLowerCase();
       return `
-        <div class="card mb-3">
+        <div class="card">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <span class="badge badge-primary">${item.category}</span>
-              <h3 class="card-title mt-1">${item.quantity} ${item.unit || 'units'} (${item.condition})</h3>
-              <p class="card-subtitle">${item.city} • Posted on ${new Date(item.createdAt).toLocaleDateString()}</p>
+              <div class="flex items-center gap-1 mb-1">
+                <span class="badge badge-primary text-xs">Care Center</span>
+                ${isLocal ? `<span class="badge badge-success text-xs">In Your City</span>` : ''}
+                ${c.verified ? `<span class="badge badge-neutral text-xs">Verified</span>` : ''}
+              </div>
+              <h3 class="card-title">${c.organizationName || c.name}</h3>
+              <p class="card-subtitle">${c.city} • Contact: ${c.phone || c.email}</p>
             </div>
-            <span class="badge badge-status-${item.status}">${item.status}</span>
           </div>
-          <p class="text-sm text-muted mb-2">${item.description || 'No description'}</p>
-          ${stepperHtml}
-          ${(item.acceptedByNgoName || item.acceptedByName) ? `
-            <div class="alert alert-info mt-2 p-2">
-              <span class="text-xs">Partner NGO: <strong>${item.acceptedByNgoName || item.acceptedByName}</strong></span>
-            </div>
-          ` : ''}
+          <p class="text-sm text-muted mb-3">
+            ${c.openRequirementsCount > 0 
+              ? `<strong class="text-primary">${c.openRequirementsCount} active need(s):</strong> ${c.neededItems.join(', ')}` 
+              : 'Registered verified Care Center & Orphanage accepting direct contributions.'}
+          </p>
+          <div class="card-footer flex justify-between items-center">
+            <span class="text-xs text-muted">${c.openRequirementsCount} open needs</span>
+            <button class="btn btn-sm btn-primary" onclick="openDonateForNeed('', '${c.city}', 'Direct donation for ${c.organizationName || c.name}')">+ Direct Donate</button>
+          </div>
         </div>
       `;
     }).join('');
   } catch (err) {
-    container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    container.innerHTML = `<div class="alert alert-error">Failed to load care centers: ${err.message}</div>`;
+  }
+}
+
+function renderContributorPointsView(stats) {
+  const container = document.getElementById('contributor-points-view');
+  if (!container) return;
+  const s = stats || contributorStatsCache || { points: 0, level: 1, tierName: 'Community Starter', tierIcon: '🌟', nextLevelPoints: 200, progressPercent: 0 };
+
+  container.innerHTML = `
+    <div class="points-hero-card">
+      <div>
+        <span class="points-tier-badge">${s.tierIcon} Level ${s.level}: ${s.tierName}</span>
+        <h2 style="color: #0f172a; font-size: 1.85rem; font-weight: 800; margin-bottom: 0.35rem;">${s.points} Impact Karma Points</h2>
+        <p style="color: #475569; font-size: 0.92rem; margin-bottom: 1rem;">
+          You are a recognized contributor making real impact in your community. 
+          ${s.nextLevelPoints - s.points > 0 ? `<strong>${s.nextLevelPoints - s.points} points</strong> needed to reach next tier.` : 'You have achieved the highest contributor status!'}
+        </p>
+        <div style="background: #e2e8f0; border-radius: var(--radius-full); height: 10px; width: 100%; max-width: 440px; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: ${s.progressPercent}%; border-radius: var(--radius-full);"></div>
+        </div>
+      </div>
+      <div class="points-circle-counter">
+        <span style="font-size: 1.75rem; font-weight: 800; color: #154734;">${s.points}</span>
+        <span style="font-size: 0.7rem; font-weight: 700; color: #059669; text-transform: uppercase;">Points</span>
+      </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <h3 class="mb-2" style="font-size: 1.1rem;">How You Earn Points for Donations</h3>
+      <div class="grid-4 text-center">
+        <div class="p-2" style="background: var(--surface-2); border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem;">📝</div>
+          <strong class="text-primary">+50 Pts</strong>
+          <div class="text-xs text-muted mt-1">Post a Donation</div>
+        </div>
+        <div class="p-2" style="background: var(--surface-2); border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem;">🤝</div>
+          <strong class="text-primary">+100 Pts</strong>
+          <div class="text-xs text-muted mt-1">NGO Accepts Post</div>
+        </div>
+        <div class="p-2" style="background: var(--surface-2); border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem;">🚚</div>
+          <strong class="text-primary">+150 Pts</strong>
+          <div class="text-xs text-muted mt-1">Picked Up & In Transit</div>
+        </div>
+        <div class="p-2" style="background: var(--surface-2); border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem;">🎉</div>
+          <strong class="text-primary">+250 Pts</strong>
+          <div class="text-xs text-muted mt-1">Delivered to Care Center</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openDonateForNeed(category, city, description) {
+  openModal('modal-create-donation');
+  if (category) {
+    const catSelect = document.getElementById('donation-category');
+    if (catSelect) {
+      for (let i = 0; i < catSelect.options.length; i++) {
+        if (catSelect.options[i].value.toLowerCase() === category.toLowerCase()) {
+          catSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  }
+  const form = document.getElementById('form-create-donation');
+  if (form) {
+    if (city && form.elements['city']) form.elements['city'].value = city;
+    if (description && form.elements['description']) form.elements['description'].value = description;
   }
 }
 
@@ -1102,7 +1650,10 @@ async function loadNgoAcceptedDonations() {
               <button class="btn btn-sm btn-success" onclick="openProofModal(${item.id})">Mark Distributed & Upload Proof</button>
             ` : ''}
             ${item.status === 'DISTRIBUTED' ? `
-              <span class="badge badge-status-DISTRIBUTED">Distributed to Beneficiaries</span>
+              <div class="flex items-center gap-1 flex-wrap">
+                <span class="badge badge-status-DISTRIBUTED">Distributed to Beneficiaries</span>
+                <span class="badge badge-warning text-xs">Auto-deletes in ${item.distributedAt ? Math.max(0, Math.ceil((new Date(item.distributedAt).getTime() + 2 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60))) : 48}h</span>
+              </div>
             ` : ''}
           </div>
         </div>
@@ -1204,7 +1755,7 @@ async function submitProofDistribution() {
       body: formData
     });
     closeModal('modal-proof-distribution');
-    showToast('Proof uploaded! Donation marked as DISTRIBUTED.', 'success');
+    showToast('Proof uploaded! Donation marked as DISTRIBUTED (Auto-deletes from website in 2 days).', 'success');
     loadNgoDashboard();
     if (state.currentView === 'donations') loadDonations();
   } catch (err) {
@@ -1212,38 +1763,141 @@ async function submitProofDistribution() {
   }
 }
 
-// 3. Consumer Dashboard
+// 3. Care Center Dashboard
+function openCareCenterRequirementModal() {
+  openModal('modal-create-requirement');
+  if (state.user) {
+    const cityInput = document.getElementById('req-city-input');
+    const addressInput = document.getElementById('req-address-input');
+    if (cityInput && !cityInput.value) cityInput.value = state.user.city || '';
+    if (addressInput && !addressInput.value) addressInput.value = state.user.address || '';
+  }
+}
+
 async function loadConsumerDashboard() {
   const container = document.getElementById('consumer-my-requirements');
+  const headerContainer = document.getElementById('carecenter-profile-header');
   if (!container) return;
   container.innerHTML = `<div class="page-loading"><div class="spinner"></div></div>`;
+  
   try {
-    const list = await api('/api/requirements/my');
-    if (!list || list.length === 0) {
+    const list = await api('/api/requirements/my') || [];
+    
+    // Render Care Center Profile Header
+    if (headerContainer && state.user) {
+      const activeNeeds = list.filter(r => !r.fulfilled).length;
+      const fulfilledNeeds = list.filter(r => r.fulfilled).length;
+      headerContainer.innerHTML = `
+        <div class="contrib-profile-banner mb-3">
+          <div class="flex items-center gap-3">
+            <div class="contrib-avatar" style="background: linear-gradient(135deg, #059669, #10b981);">
+              🏥
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h2 style="color: #ffffff; margin: 0; font-size: 1.35rem;">${state.user.organizationName || state.user.name}</h2>
+                <span class="badge badge-success text-xs">✓ Verified Care Center</span>
+              </div>
+              <p style="color: #a3e6cd; font-size: 0.85rem; margin: 0.2rem 0 0 0;">
+                ${state.user.city || 'India'} • ${state.user.email} • Official Care Center & Orphanage Portal
+              </p>
+            </div>
+          </div>
+          <div class="contrib-profile-stats">
+            <div class="contrib-stat-pill">
+              <span class="stat-num">${list.length}</span>
+              <span class="stat-lbl">Total Posts</span>
+            </div>
+            <div class="contrib-stat-pill">
+              <span class="stat-num" style="color: #fca5a5;">${activeNeeds}</span>
+              <span class="stat-lbl">Open Needs</span>
+            </div>
+            <div class="contrib-stat-pill">
+              <span class="stat-num" style="color: #34d399;">${fulfilledNeeds}</span>
+              <span class="stat-lbl">Fulfilled</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (list.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
-          <h3>No Requirements Posted</h3>
-          <p>Click "Post Requirement" to request food, clothes, or supplies for your care center!</p>
+          <h3>No Requirements Posted Yet</h3>
+          <p>Your care center has not posted any supply requirements. Click below to publish your first need so community contributors and NGOs can deliver it to you!</p>
+          <button class="btn btn-primary mt-2" onclick="openCareCenterRequirementModal()">+ Post Your First Requirement</button>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = list.map(req => `
-      <div class="card mb-3">
-        <div class="flex justify-between items-start mb-2">
-          <div>
-            <span class="badge badge-urgency-${req.urgency}">${req.urgency} URGENCY</span>
-            <h3 class="card-title mt-1">${req.item} (${req.quantity})</h3>
-            <p class="card-subtitle">${req.city} • For: ${req.forWhom}</p>
-          </div>
-          <span class="badge badge-neutral">${req.status}</span>
-        </div>
+    container.innerHTML = `
+      <div class="grid-2">
+        ${list.map(req => {
+          const isHigh = req.urgency === 'HIGH';
+          return `
+            <div class="card" style="border-left: 4px solid ${req.fulfilled ? 'var(--neutral)' : isHigh ? 'var(--danger)' : 'var(--accent)'};">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <div class="flex items-center gap-1 mb-1">
+                    <span class="badge ${req.fulfilled ? 'badge-neutral' : isHigh ? 'badge-danger' : 'badge-warning'} text-xs">
+                      ${req.fulfilled ? '✓ FULFILLED' : (req.urgency || 'MEDIUM') + ' URGENCY'}
+                    </span>
+                    <span class="text-xs text-muted font-semibold">#REQ-${req.id}</span>
+                  </div>
+                  <h3 class="card-title mt-1" style="font-size: 1.15rem;">${req.item} (${req.quantityNeeded} ${req.unit || 'units'})</h3>
+                  <p class="card-subtitle text-xs" style="margin-top: 0.2rem;">
+                    For: <strong>${req.forWhom || 'Care center residents'}</strong> • ${req.city}
+                  </p>
+                </div>
+              </div>
+
+              ${req.description ? `<p class="text-sm text-muted mb-2">"${req.description}"</p>` : ''}
+              ${req.address ? `<p class="text-xs text-muted mb-3">📍 Delivery Location: ${req.address}</p>` : ''}
+
+              <div class="card-footer flex justify-between items-center pt-2 border-top flex-wrap gap-1">
+                <span class="text-xs text-light">Posted: ${new Date(req.createdAt).toLocaleDateString()}</span>
+                <div class="flex gap-1">
+                  <button class="btn btn-sm ${req.fulfilled ? 'btn-outline' : 'btn-success'}" onclick="toggleRequirementFulfilled(${req.id})">
+                    ${req.fulfilled ? 'Re-open Need' : '✓ Mark Fulfilled'}
+                  </button>
+                  <button class="btn btn-sm btn-ghost text-danger" onclick="deleteRequirement(${req.id})" title="Delete post">
+                    ✕ Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
-    `).join('');
+    `;
   } catch (err) {
     container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+}
+
+async function toggleRequirementFulfilled(id) {
+  try {
+    await api(`/api/requirements/${id}/fulfill`, { method: 'PUT' });
+    showToast('Requirement status updated!', 'success');
+    loadConsumerDashboard();
+    loadRequirements();
+  } catch (err) {
+    showToast(err.message || 'Failed to update requirement', 'error');
+  }
+}
+
+async function deleteRequirement(id) {
+  if (!confirm('Are you sure you want to remove this requirement post?')) return;
+  try {
+    await api(`/api/requirements/${id}`, { method: 'DELETE' });
+    showToast('Requirement removed successfully', 'success');
+    loadConsumerDashboard();
+    loadRequirements();
+  } catch (err) {
+    showToast(err.message || 'Failed to delete requirement', 'error');
   }
 }
 
@@ -1271,12 +1925,21 @@ async function handleCreateDonation(e) {
 async function handleCreateRequirement(e) {
   e.preventDefault();
   const form = e.target;
+  const quantityVal = parseInt(form.quantityNeeded ? form.quantityNeeded.value : form.quantity.value, 10);
+  if (isNaN(quantityVal) || quantityVal <= 0) {
+    showToast('Please enter a valid numeric quantity', 'error');
+    return;
+  }
+
   const data = {
-    item: form.item.value,
-    quantity: form.quantity.value,
-    forWhom: form.forWhom.value,
+    item: form.item.value.trim(),
+    quantityNeeded: quantityVal,
+    unit: form.unit ? form.unit.value.trim() : '',
+    forWhom: form.forWhom.value.trim(),
     urgency: form.urgency.value,
-    city: form.city.value
+    city: form.city.value.trim(),
+    address: form.address ? form.address.value.trim() : '',
+    description: form.description ? form.description.value.trim() : ''
   };
 
   try {
@@ -1286,7 +1949,7 @@ async function handleCreateRequirement(e) {
     });
     form.reset();
     closeModal('modal-create-requirement');
-    showToast('Requirement post published!', 'success');
+    showToast('Care Center requirement published! Local donors and NGOs have been notified.', 'success');
     loadRequirements();
     if (state.user && state.user.role === 'CONSUMER') loadConsumerDashboard();
   } catch (err) {

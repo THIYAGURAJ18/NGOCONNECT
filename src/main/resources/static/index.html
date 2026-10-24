@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Donation — Community Logistics & Disaster Relief Platform</title>
-  <meta name="description" content="Smart Donation connects Contributors, NGOs, and Orphanages/Care Centers with transparent tracking, smart matching, and disaster relief." />
+  <title>Hand2Heart — Give with Purpose | Community Logistics Platform</title>
+  <meta name="description" content="Hand2Heart connects Contributors, NGOs, and Care Centers with transparent tracking, smart matching, and emergency relief." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234f46e5'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23154734'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
 </head>
 <body>
 
@@ -24,7 +24,10 @@
     <div class="navbar-inner">
       <a href="javascript:void(0)" onclick="navigateTo('home')" class="navbar-brand">
         <div class="brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
-        <span>Smart Donation</span>
+        <div>
+          <span style="display:block; line-height: 1.1; font-weight: 800; font-size: 1.25rem;">Hand2Heart</span>
+          <span style="display:block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; color: #64748b; text-transform: uppercase;">Give with Purpose</span>
+        </div>
       </a>
 
       <nav class="navbar-nav">
@@ -318,18 +321,100 @@
       
       <!-- 1. Contributor Dashboard -->
       <div id="dash-contributor" class="role-dashboard hidden">
-        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-          <div>
-            <h2>Contributor Dashboard</h2>
-            <p class="text-muted">Track your donations through the 4-stage logistics pipeline.</p>
-          </div>
-          <button class="btn btn-primary" onclick="openModal('modal-create-donation')">+ New Donation Post</button>
-        </div>
-
-        <h3 class="mb-2">My Donations</h3>
-        <div id="contributor-my-donations">
+        
+        <!-- Contributor Profile Overview & Impact Metrics Header -->
+        <div id="contributor-profile-header" class="mb-4">
           <div class="page-loading"><div class="spinner"></div></div>
         </div>
+
+        <!-- Live Emergency Relief Operations Alert -->
+        <div id="contributor-emergency-alert" class="mb-4 hidden"></div>
+
+        <!-- Contributor Workspace Navigation Tabs -->
+        <div class="tabs mb-4 flex-wrap">
+          <div id="tab-btn-contrib-tracking" class="tab active" onclick="switchContributorTab('tracking')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><polyline points="20 6 9 17 4 12"/></svg>
+            Donation Tracking <span id="contrib-tracking-badge" class="badge badge-primary text-xs ml-1">0</span>
+          </div>
+          <div id="tab-btn-contrib-matches" class="tab" onclick="switchContributorTab('matches')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Care Center Need Matches <span id="contrib-matches-badge" class="badge badge-warning text-xs ml-1">0</span>
+          </div>
+          <div id="tab-btn-contrib-carecenters" class="tab" onclick="switchContributorTab('carecenters')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M3 21h18M5 21V7l8-4 8 4v14M9 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+            Nearby Care Centers
+          </div>
+          <div id="tab-btn-contrib-rewards" class="tab" onclick="switchContributorTab('rewards')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            Impact & Points
+          </div>
+        </div>
+
+        <!-- Tab 1: Donation Tracking Workspace -->
+        <div id="contrib-tab-tracking" class="contrib-tab-content">
+          <div class="card mb-3 p-3">
+            <div class="flex justify-between items-center gap-2 flex-wrap">
+              <div class="flex-1" style="min-width: 260px;">
+                <input type="text" id="contrib-search-tracking" class="form-control" placeholder="Search donation by item, category, or recipient..." oninput="filterContributorTracking()" />
+              </div>
+              <div style="min-width: 200px;">
+                <select id="contrib-filter-status" class="form-control" onchange="filterContributorTracking()">
+                  <option value="">All Statuses</option>
+                  <option value="POSTED">1. Posted (Waiting for NGO)</option>
+                  <option value="ACCEPTED">2. Accepted by NGO</option>
+                  <option value="COLLECTED">3. In Transit (Collected)</option>
+                  <option value="DISTRIBUTED">4. Delivered to Care Center</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="openModal('modal-create-donation')">+ Make a Donation</button>
+            </div>
+          </div>
+          <div id="contributor-my-donations">
+            <div class="page-loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Need-Based Recommendations Engine -->
+        <div id="contrib-tab-matches" class="contrib-tab-content hidden">
+          <div class="card mb-3 p-3" style="background: linear-gradient(135deg, rgba(232, 245, 238, 0.7) 0%, rgba(255, 255, 255, 0.95) 100%); border-left: 4px solid var(--accent);">
+            <div class="flex items-center gap-2">
+              <div class="brand-icon" style="width: 38px; height: 38px; font-size: 1.15rem;">✨</div>
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Smart Care Center Need Matches</h3>
+                <p class="text-xs text-muted" style="margin: 0;">Verified orphanages and care centers requiring urgent items in and around your location.</p>
+              </div>
+            </div>
+          </div>
+          <div id="contributor-need-matches">
+            <div class="page-loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Nearby Care Centers Directory -->
+        <div id="contrib-tab-carecenters" class="contrib-tab-content hidden">
+          <div class="card mb-3 p-3">
+            <div class="flex justify-between items-center flex-wrap gap-2">
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Verified Nearby Care Centers</h3>
+                <p class="text-xs text-muted" style="margin: 0;">Explore registered Care Centers, Orphanages, and Elder Homes ready to receive donations.</p>
+              </div>
+              <div class="flex gap-1">
+                <input type="text" id="contrib-filter-carecenter-city" class="form-control" placeholder="Search by city..." oninput="loadNearbyCareCenters(this.value)" style="width: 200px;" />
+              </div>
+            </div>
+          </div>
+          <div id="contributor-nearby-carecenters" class="grid-2">
+            <div class="page-loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Impact Points & Rewards -->
+        <div id="contrib-tab-rewards" class="contrib-tab-content hidden">
+          <div id="contributor-points-view">
+            <div class="page-loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
       </div>
 
       <!-- 2. NGO Dashboard -->
@@ -388,17 +473,20 @@
         </div>
       </div>
 
-      <!-- 3. Consumer Dashboard -->
+      <!-- 3. Care Center / Consumer Dashboard -->
       <div id="dash-consumer" class="role-dashboard hidden">
-        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-          <div>
-            <h2>Care Center / Consumer Dashboard</h2>
-            <p class="text-muted">Request supplies for your shelter, care center, or orphanage.</p>
-          </div>
-          <button class="btn btn-primary" onclick="openModal('modal-create-requirement')">+ Post Requirement</button>
+        <div id="carecenter-profile-header" class="mb-4">
+          <!-- Rendered dynamically by loadConsumerDashboard() -->
         </div>
 
-        <h3 class="mb-2">My Requirement Posts</h3>
+        <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h3 style="margin: 0; font-size: 1.25rem;">Our Published Requirements</h3>
+            <p class="text-muted text-xs" style="margin: 0;">Requirements posted by your care center are broadcasted to local donors and verified NGOs.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openCareCenterRequirementModal()">+ Post New Requirement</button>
+        </div>
+
         <div id="consumer-my-requirements">
           <div class="page-loading"><div class="spinner"></div></div>
         </div>
@@ -647,43 +735,59 @@
   <div id="modal-create-requirement" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">Post Community Requirement</h3>
+        <h3 class="modal-title">Post Care Center Supply Requirement</h3>
         <button class="modal-close" onclick="closeModal('modal-create-requirement')">×</button>
       </div>
       <div class="modal-body">
         <form id="form-create-requirement">
           <div class="form-group">
             <label class="form-label">Item Needed <span class="required">*</span></label>
-            <input type="text" name="item" class="form-control" required placeholder="e.g. 50 School Notebooks or Rice bags" />
+            <input type="text" name="item" class="form-control" required placeholder="e.g. Grocery Kits, School Notebooks, Warm Blankets, Pulses" />
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Quantity <span class="required">*</span></label>
-              <input type="text" name="quantity" class="form-control" required placeholder="e.g. 50 pcs or 100 kg" />
+              <label class="form-label">Quantity Needed <span class="required">*</span></label>
+              <input type="number" min="1" name="quantityNeeded" class="form-control" required placeholder="e.g. 50" />
             </div>
             <div class="form-group">
-              <label class="form-label">Urgency <span class="required">*</span></label>
+              <label class="form-label">Unit of Measure</label>
+              <input type="text" name="unit" class="form-control" placeholder="e.g. kits, pcs, sets, kg, boxes" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Urgency Level <span class="required">*</span></label>
               <select name="urgency" class="form-control" required>
-                <option value="HIGH">HIGH (Immediate)</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="LOW">LOW</option>
+                <option value="HIGH">HIGH (Urgent immediate need)</option>
+                <option value="MEDIUM" selected>MEDIUM (Standard supply)</option>
+                <option value="LOW">LOW (Flexible timing)</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">For Whom / Beneficiaries <span class="required">*</span></label>
+              <input type="text" name="forWhom" class="form-control" required placeholder="e.g. 40 resident children, 30 elderly residents" />
+            </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">For Whom <span class="required">*</span></label>
-              <input type="text" name="forWhom" class="form-control" required placeholder="e.g. 35 Orphanage Kids" />
+              <label class="form-label">City <span class="required">*</span></label>
+              <input type="text" name="city" id="req-city-input" class="form-control" required placeholder="e.g. Chennai" />
             </div>
             <div class="form-group">
-              <label class="form-label">City <span class="required">*</span></label>
-              <input type="text" name="city" class="form-control" required placeholder="e.g. Chennai" />
+              <label class="form-label">Handover / Delivery Address</label>
+              <input type="text" name="address" id="req-address-input" class="form-control" placeholder="e.g. No. 14, Gandhi Road, Anna Nagar" />
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-full">Publish Requirement</button>
+          <div class="form-group">
+            <label class="form-label">Requirement Details & Context</label>
+            <textarea name="description" class="form-control" rows="2" placeholder="Describe specifics (e.g. grades 1-5 notebooks, unopened cooking oil, etc.)..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">Publish Requirement to Community</button>
         </form>
       </div>
     </div>
@@ -865,7 +969,12 @@
         <button class="modal-close" onclick="closeModal('modal-proof-distribution')">×</button>
       </div>
       <div class="modal-body">
-        <p class="text-sm text-muted mb-3">Ensure complete transparency by uploading handover photos and notes of the beneficiary handover.</p>
+        <p class="text-sm text-muted mb-2">Ensure complete transparency by uploading handover photos and notes of the beneficiary handover.</p>
+        
+        <div class="alert alert-warning p-2 mb-3 text-xs flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span><strong>Auto-Delete Policy:</strong> Once marked as distributed, this post will automatically be deleted from the website in 2 days.</span>
+        </div>
         
         <div class="form-group">
           <label class="form-label">Handover Photo</label>

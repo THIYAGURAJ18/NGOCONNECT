@@ -49,6 +49,7 @@ public class DonationPostDto {
         private String acceptedAt;
         private String collectedAt;
         private String distributedAt;
+        private String autoDeleteAt;
 
         public static Response from(DonationPost p) {
             Response r = new Response();
@@ -72,6 +73,9 @@ public class DonationPostDto {
             r.setAcceptedAt(p.getAcceptedAt() != null ? p.getAcceptedAt().toString() : null);
             r.setCollectedAt(p.getCollectedAt() != null ? p.getCollectedAt().toString() : null);
             r.setDistributedAt(p.getDistributedAt() != null ? p.getDistributedAt().toString() : null);
+            if (p.getStatus() == DonationPost.Status.DISTRIBUTED && p.getDistributedAt() != null) {
+                r.setAutoDeleteAt(p.getDistributedAt().plusDays(2).toString());
+            }
             return r;
         }
     }

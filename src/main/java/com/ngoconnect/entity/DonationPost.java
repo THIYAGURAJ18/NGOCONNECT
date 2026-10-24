@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "donation_posts")
@@ -52,6 +54,9 @@ public class DonationPost {
     private LocalDateTime acceptedAt;
     private LocalDateTime collectedAt;
     private LocalDateTime distributedAt;
+
+    @OneToMany(mappedBy = "donationPost", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DistributionUpdate> distributionUpdates = new ArrayList<>();
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -54,4 +54,25 @@ public class RequirementPostController {
         User user = authService.findByEmail(userDetails.getUsername());
         return ResponseEntity.ok(requirementPostService.getMyPosts(user));
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'NGO', 'ADMIN')")
+    public ResponseEntity<Void> delete(
+        @PathVariable Long id,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        User user = authService.findByEmail(userDetails.getUsername());
+        requirementPostService.delete(id, user);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/fulfill")
+    @PreAuthorize("hasAnyRole('CONSUMER', 'NGO', 'ADMIN')")
+    public ResponseEntity<RequirementPostDto.Response> toggleFulfilled(
+        @PathVariable Long id,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        User user = authService.findByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(requirementPostService.toggleFulfilled(id, user));
+    }
 }

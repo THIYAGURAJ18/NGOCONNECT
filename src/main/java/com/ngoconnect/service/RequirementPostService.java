@@ -54,6 +54,25 @@ public class RequirementPostService {
             .stream().map(RequirementPostDto.Response::from).collect(Collectors.toList());
     }
 
+    @Transactional
+    public void delete(Long id, User user) {
+        RequirementPost post = findEntityById(id);
+        if (!post.getPostedBy().getId().equals(user.getId()) && user.getRole() != User.Role.ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("You can only delete your own requirements");
+        }
+        requirementPostRepository.delete(post);
+    }
+
+    @Transactional
+    public RequirementPostDto.Response toggleFulfilled(Long id, User user) {
+        RequirementPost post = findEntityById(id);
+        if (!post.getPostedBy().getId().equals(user.getId()) && user.getRole() != User.Role.ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("You can only update your own requirements");
+        }
+        post.setFulfilled(!post.isFulfilled());
+        return RequirementPostDto.Response.from(requirementPostRepository.save(post));
+    }
+
     public RequirementPost findEntityById(Long id) {
         return requirementPostRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Requirement post not found: " + id));

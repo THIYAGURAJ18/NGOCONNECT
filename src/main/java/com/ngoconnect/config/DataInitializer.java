@@ -25,6 +25,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.ngoconnect.repository.RequirementPostRepository requirementPostRepository;
 
     @Override
     public void run(String... args) {
@@ -35,6 +36,9 @@ public class DataInitializer implements CommandLineRunner {
                 userRepository.save(u);
             }
         });
+
+        // Ensure all care centers have zero default posts. Care centers post requirements dynamically.
+        requirementPostRepository.deleteAll();
 
         if (userRepository.count() > 0) {
             log.info("Users already exist, skipping account seed.");
