@@ -30,6 +30,22 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
+// ── Escaping Helpers ───────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeJs(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
 // ── API Helper ─────────────────────────────────────────────
 async function api(url, options = {}) {
   options.credentials = 'include';
@@ -65,7 +81,39 @@ async function api(url, options = {}) {
 }
 
 // ── Navigation & View Switching ────────────────────────────
+async function clickHome() {
+  if (state.user) {
+    try {
+      await api('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    state.user = null;
+    updateNav();
+    showToast('Logged out of profile. Showing Care Center community needs.', 'info');
+  }
+  navigateTo('home');
+}
+
 function navigateTo(viewId) {
+  // Clicking home logs out of profile to only show common public details
+  if (viewId === 'home' && state.user) {
+    try {
+      api('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    state.user = null;
+    updateNav();
+    showToast('Logged out of profile. Showing Care Center community needs.', 'info');
+  }
+
+  // Browse Donations is exclusively for Care Centers and NGOs
+  if (viewId === 'donations') {
+    const isNgoOrCareCenter = state.user && (state.user.role === 'NGO' || state.user.role === 'CONSUMER');
+    if (!isNgoOrCareCenter) {
+      showToast('Browse Donations is accessible exclusively to registered Care Centers and NGOs.', 'info');
+      navigateTo('home');
+      return;
+    }
+  }
+
   state.currentView = viewId;
   document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
   const target = document.getElementById(`view-${viewId}`);
@@ -75,7 +123,7 @@ function navigateTo(viewId) {
   }
 
   // Update active nav links
-  document.querySelectorAll('.navbar-nav a, .mobile-nav a').forEach(a => {
+  document.querySelectorAll('.navbar-nav a, .mobile-menu a').forEach(a => {
     if (a.getAttribute('data-view') === viewId) {
       a.classList.add('active');
     } else {
@@ -90,7 +138,6 @@ function navigateTo(viewId) {
   if (viewId === 'home') loadHome();
   else if (viewId === 'donations') loadDonations();
   else if (viewId === 'requirements') loadRequirements();
-  else if (viewId === 'campaigns') loadCampaigns();
   else if (viewId === 'disaster') loadDisasterRelief();
   else if (viewId === 'dashboard') loadDashboard();
 }
@@ -135,6 +182,19 @@ function updateNav() {
     if (guestNav) guestNav.classList.remove('hidden');
     if (userNav) userNav.classList.add('hidden');
     if (dashboardNav) dashboardNav.classList.add('hidden');
+  }
+
+  // Browse Donations: Exclusively visible to NGOs and Care Centers (Consumer)
+  const isNgoOrCareCenter = user && (user.role === 'NGO' || user.role === 'CONSUMER');
+  const donationsNav = document.getElementById('nav-donations-link');
+  const mobileDonationsNav = document.getElementById('mobile-nav-donations');
+  if (donationsNav) {
+    if (isNgoOrCareCenter) donationsNav.classList.remove('hidden');
+    else donationsNav.classList.add('hidden');
+  }
+  if (mobileDonationsNav) {
+    if (isNgoOrCareCenter) mobileDonationsNav.classList.remove('hidden');
+    else mobileDonationsNav.classList.add('hidden');
   }
 
   // Update NGO Emergency Relief Launch Button
@@ -447,14 +507,34 @@ async function loadDisasterBanner() {
               <span class="disaster-banner-item" onclick="navigateTo('disaster')">View All Needs →</span>
             </div>
           </div>
-          <div class="disaster-banner-actions">
-            <button class="btn btn-sm btn-outline" style="color:white; border-color:white;" onclick="openDisasterDetail(${d.id})">Help Now</button>
+          <div class="disaster-banner-actions flex items-center gap-2">
+            <button class="btn btn-sm" style="background: #ffffff; color: #b91c1c; font-weight: 700; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer;" onclick="goToEmergencyDonate(${d.campaignId || d.id}, ${d.id}, '${(d.title || '').replace(/'/g, "\\'")}')">Help Now (Donate Funds)</button>
+            <button class="btn btn-sm btn-outline" style="color: white; border-color: rgba(255,255,255,0.7); cursor: pointer;" onclick="openPledgeModal(${d.id})">Pledge Supplies</button>
           </div>
         </div>
       `;
     }
   } catch (err) {
     console.error('Error loading disaster banner:', err);
+  }
+}
+
+function goToEmergencyDonate(campaignId, disasterId, title) {
+  // 1. Direct user to emergency disaster relief page
+  navigateTo('disaster');
+  
+  // 2. Open the Razorpay donation modal for this emergency fund
+  setTimeout(() => {
+    openDonateModal(campaignId, title ? `${title} - Emergency Relief Fund` : 'Emergency Relief Fund');
+  }, 120);
+}
+
+function openDisasterDetail(id) {
+  const d = (state.disasters || []).find(x => x.id === id);
+  if (d && d.campaignId) {
+    goToEmergencyDonate(d.campaignId, d.id, d.title);
+  } else {
+    navigateTo('disaster');
   }
 }
 
@@ -711,30 +791,49 @@ async function loadRequirements() {
 function renderRequirementsGrid(container, list) {
   if (!list || list.length === 0) {
     container.innerHTML = `
-      <div class="empty-state w-full">
-        <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
-        <h3>No Requirements Listed</h3>
-        <p>No community needs matching your search. Post one if you represent a shelter or care home!</p>
+      <div class="empty-state w-full" style="grid-column: 1 / -1; padding: 3rem 1rem; text-align: center; background: #ffffff; border-radius: 12px; border: 1px dashed #d1d5db;">
+        <div class="empty-state-icon" style="margin-bottom: 0.75rem;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#154734" stroke-width="1.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></div>
+        <h3 style="color: #111827; margin-bottom: 0.25rem;">No Care Center Requirements Yet</h3>
+        <p class="text-muted text-sm mb-3">All default mock posts have been removed. Only real posts published by Care Centers appear here.</p>
+        <button class="btn btn-sm btn-outline" onclick="quickLogin('consumer@orphanage.com', 'demo123')">Login as Demo Care Center to Post a Need →</button>
       </div>
     `;
     return;
   }
 
   container.innerHTML = list.map(req => {
+    const qtyText = `${req.quantityNeeded || req.quantity || ''} ${req.unit || ''}`.trim() || 'Supplies Needed';
+    const careCenterName = req.postedByName || req.requesterName || 'Care Center';
+    const isCareCenter = (req.postedByRole === 'CONSUMER' || !req.postedByRole);
+    const roleLabel = isCareCenter ? 'Care Center / Orphanage' : (req.postedByRole || 'Care Center');
+    const statusBadge = req.fulfilled
+      ? `<span class="badge badge-success">FULFILLED</span>`
+      : `<span class="badge badge-warning" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">ACTIVE NEED</span>`;
+    const locationText = req.address ? `${req.city} (${req.address})` : req.city;
+    const descSnippet = req.description ? `<p class="text-xs text-muted mb-2" style="line-height: 1.4;">${escapeHtml(req.description)}</p>` : '';
+
     return `
       <div class="card" style="border-top: 4px solid ${req.urgency === 'HIGH' ? 'var(--urgency-high)' : req.urgency === 'MEDIUM' ? 'var(--urgency-medium)' : 'var(--urgency-low)'}">
         <div class="flex justify-between items-start mb-2">
-          <span class="badge badge-urgency-${req.urgency}">${req.urgency} URGENCY</span>
-          <span class="badge badge-neutral">${req.status}</span>
+          <span class="badge badge-urgency-${req.urgency || 'MEDIUM'}">${req.urgency || 'MEDIUM'} URGENCY</span>
+          ${statusBadge}
         </div>
-        <h3 class="card-title">${req.item}</h3>
-        <p class="text-sm font-semibold text-primary mb-1">Required: ${req.quantity}</p>
-        <p class="card-subtitle mb-2">${req.city} • For: <strong>${req.forWhom}</strong></p>
-        <p class="text-xs text-muted mb-3">Requested by: ${req.requesterName} (${req.requesterRole})</p>
         
-        <div class="card-footer flex justify-between items-center">
-          <span class="text-xs text-light">${new Date(req.createdAt).toLocaleDateString()}</span>
-          <button class="btn btn-sm btn-outline" onclick="openFulfillModal('${req.item}', '${req.city}')">I Can Provide This</button>
+        <div class="flex items-center gap-1 mb-2">
+          <span style="font-size: 0.72rem; font-weight: 700; color: #154734; background: #e8f5e9; padding: 2px 8px; border-radius: 9999px;">
+            🏢 ${escapeHtml(careCenterName)}
+          </span>
+          <span class="text-xs text-muted">(${roleLabel})</span>
+        </div>
+
+        <h3 class="card-title" style="margin-bottom: 0.25rem;">${escapeHtml(req.item)}</h3>
+        <p class="text-sm font-semibold text-primary mb-1">Required: ${qtyText}</p>
+        <p class="card-subtitle mb-2">📍 ${escapeHtml(locationText)} • For: <strong>${escapeHtml(req.forWhom || 'Care Home Residents')}</strong></p>
+        ${descSnippet}
+        
+        <div class="card-footer flex justify-between items-center mt-3 pt-2" style="border-top: 1px solid #f3f4f6;">
+          <span class="text-xs text-light">${req.createdAt ? new Date(req.createdAt).toLocaleDateString() : 'Recent'}</span>
+          <button class="btn btn-sm btn-primary" onclick="openFulfillModal('${escapeJs(req.item)}', '${escapeJs(req.city || '')}')">I Can Provide This</button>
         </div>
       </div>
     `;
@@ -817,14 +916,60 @@ function renderCampaignsGrid(container, list) {
   }).join('');
 }
 
-// ── Mock Payment Modal Logic ───────────────────────────────
+// ── Razorpay Payment Gateway Integration ────────────────────
 let currentCampaignId = null;
-function openDonateModal(campaignId, campaignTitle) {
+
+async function openDonateModal(campaignId, campaignTitle) {
   currentCampaignId = campaignId;
   const titleEl = document.getElementById('donate-modal-campaign-title');
-  if (titleEl) titleEl.innerText = campaignTitle;
-  document.getElementById('custom-donation-amount').value = '';
+  if (titleEl) titleEl.innerText = campaignTitle || 'Emergency Relief Fund';
+  
+  const custom = document.getElementById('custom-donation-amount');
+  if (custom) custom.value = '';
   selectPresetAmount(1000);
+
+  // Pre-fill user details if logged in
+  if (state.user) {
+    const nameEl = document.getElementById('donation-donor-name');
+    const emailEl = document.getElementById('donation-donor-email');
+    if (nameEl && !nameEl.value) nameEl.value = state.user.name || '';
+    if (emailEl && !emailEl.value) emailEl.value = state.user.email || '';
+  }
+
+  // Check Razorpay configuration status
+  try {
+    const cfg = await api('/api/payment/config');
+    const badge = document.getElementById('razorpay-status-badge');
+    if (badge && cfg) {
+      if (cfg.isConfigured) {
+        badge.style.background = '#f0fdf4';
+        badge.style.borderColor = '#bbf7d0';
+        badge.style.color = '#166534';
+        badge.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span style="width: 8px; height: 8px; background: #16a34a; border-radius: 50%; box-shadow: 0 0 6px #16a34a;"></span>
+            <span><strong>Razorpay Live Gateway Active:</strong> Payments credited directly to your account</span>
+          </div>
+          <span class="text-xs font-bold" style="color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">256-Bit SSL</span>
+        </div>
+        `;
+      } else {
+        badge.style.background = '#fffbeb';
+        badge.style.borderColor = '#fde68a';
+        badge.style.color = '#92400e';
+        badge.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; box-shadow: 0 0 6px #f59e0b;"></span>
+            <span><strong>Razorpay Ready (Test Mode):</strong> Add API keys in application.properties for live credit</span>
+          </div>
+          <span class="text-xs font-bold" style="color: #d97706; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">Sandbox Mode</span>
+        `;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not fetch payment config:', e);
+  }
+
   openModal('modal-donate-money');
 }
 
@@ -846,13 +991,20 @@ function handleCustomAmountChange(e) {
   }
 }
 
-async function submitMockDonation() {
+async function initiateRazorpayPayment() {
   const amount = parseFloat(document.getElementById('selected-donation-amount').value);
   const note = document.getElementById('donation-donor-note')?.value || '';
-  const donorName = document.getElementById('donation-donor-name')?.value || 'Kind Donor';
+  const donorName = document.getElementById('donation-donor-name')?.value || (state.user ? state.user.name : 'Kind Contributor');
+  const donorEmail = document.getElementById('donation-donor-email')?.value || (state.user ? state.user.email : '');
+  const donorPhone = document.getElementById('donation-donor-phone')?.value || '9876543210';
 
   if (!amount || amount <= 0) {
-    showToast('Please enter a valid donation amount', 'error');
+    showToast('Please enter a valid donation amount (minimum ₹1)', 'error');
+    return;
+  }
+
+  if (!donorName || donorName.trim() === '') {
+    showToast('Please enter your name for the donation receipt', 'warning');
     return;
   }
 
@@ -860,19 +1012,102 @@ async function submitMockDonation() {
   if (btn) btn.classList.add('btn-loading');
 
   try {
-    // Call backend endpoint which runs mock payment flow
-    const res = await api(`/api/campaigns/${currentCampaignId}/donate`, {
+    // 1. Create order on server / Razorpay
+    const order = await api('/api/payment/create-order', {
       method: 'POST',
-      body: JSON.stringify({ amount, note, donorName })
+      body: JSON.stringify({
+        campaignId: currentCampaignId,
+        amount,
+        donorName,
+        donorEmail,
+        donorPhone,
+        note
+      })
+    });
+
+    // 2. If valid Razorpay key is configured & Razorpay Checkout script is loaded:
+    if (!order.isTestMode && typeof window.Razorpay === 'function') {
+      const options = {
+        key: order.keyId,
+        amount: order.amountInPaise,
+        currency: order.currency || 'INR',
+        name: order.companyName || 'Smart Donation & NGO Connect',
+        description: `Emergency Relief: ${order.campaignTitle}`,
+        image: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png',
+        order_id: order.orderId,
+        handler: async function (response) {
+          await verifyRazorpayPayment({
+            razorpayOrderId: response.razorpay_order_id || order.orderId,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            campaignId: currentCampaignId,
+            amount: amount,
+            donorName: donorName,
+            note: note
+          });
+        },
+        prefill: {
+          name: donorName,
+          email: donorEmail,
+          contact: donorPhone
+        },
+        theme: {
+          color: '#154734'
+        },
+        modal: {
+          ondismiss: function () {
+            showToast('Razorpay payment cancelled.', 'info');
+            if (btn) btn.classList.remove('btn-loading');
+          }
+        }
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (res) {
+        showToast('Payment Failed: ' + (res.error?.description || 'Transaction declined'), 'error');
+        if (btn) btn.classList.remove('btn-loading');
+      });
+      rzp.open();
+    } else {
+      // Test Mode Simulation with instant verification
+      const simPaymentId = 'pay_rzp_test_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      await verifyRazorpayPayment({
+        razorpayOrderId: order.orderId,
+        razorpayPaymentId: simPaymentId,
+        razorpaySignature: 'sig_verified_demo',
+        campaignId: currentCampaignId,
+        amount: amount,
+        donorName: donorName,
+        note: note
+      });
+    }
+  } catch (err) {
+    showToast(err.message || 'Payment initiation failed', 'error');
+    if (btn) btn.classList.remove('btn-loading');
+  }
+}
+
+async function verifyRazorpayPayment(verificationData) {
+  const btn = document.getElementById('btn-confirm-payment');
+  try {
+    const res = await api('/api/payment/verify', {
+      method: 'POST',
+      body: JSON.stringify(verificationData)
     });
 
     closeModal('modal-donate-money');
-    showToast(`Payment of ₹${amount.toLocaleString()} Successful! Thank you! (Ref: ${res.paymentRef})`, 'success');
+    
+    const pointsNotice = res.pointsAwarded > 0 ? ` (+${res.pointsAwarded} Impact Points earned!)` : '';
+    showToast(`Razorpay Payment of ₹${verificationData.amount.toLocaleString()} Successful! ID: ${res.paymentId}${pointsNotice}`, 'success');
+
+    // Refresh campaigns and dashboards
     loadCampaigns();
     if (state.currentView === 'home') loadHome();
     if (state.currentView === 'disaster') loadDisasterRelief();
+    if (state.user && state.user.role === 'CONTRIBUTOR') {
+      loadContributorProfile();
+    }
   } catch (err) {
-    showToast(err.message || 'Payment simulation failed', 'error');
+    showToast(err.message || 'Payment verification failed', 'error');
   } finally {
     if (btn) btn.classList.remove('btn-loading');
   }
@@ -923,22 +1158,10 @@ async function submitPledge() {
 async function loadHome() {
   await loadDisasterBanner();
   try {
-    const donContainer = document.getElementById('home-recent-donations');
-    if (donContainer) {
-      const recentDonations = await api('/api/donations');
-      renderDonationsGrid(donContainer, (recentDonations || []).slice(0, 3));
-    }
-
     const recentReqs = await api('/api/requirements');
     const reqContainer = document.getElementById('home-urgent-reqs');
-    if (reqContainer && recentReqs) {
-      renderRequirementsGrid(reqContainer, recentReqs.slice(0, 3));
-    }
-
-    const recentCamps = await api('/api/campaigns');
-    const campContainer = document.getElementById('home-featured-campaigns');
-    if (campContainer && recentCamps) {
-      renderCampaignsGrid(campContainer, recentCamps.slice(0, 3));
+    if (reqContainer) {
+      renderRequirementsGrid(reqContainer, recentReqs || []);
     }
   } catch (err) {
     console.error('Home load error:', err);
@@ -1355,9 +1578,10 @@ async function loadContributorEmergencyAlert() {
             `).join('')}
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button class="btn btn-sm btn-danger" onclick="openDisasterDetail(${d.id})">Pledge Supplies</button>
-          <button class="btn btn-sm btn-outline" onclick="navigateTo('disaster')">Emergency Hub →</button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="btn btn-sm btn-danger" onclick="goToEmergencyDonate(${d.campaignId || d.id}, ${d.id}, '${(d.title || '').replace(/'/g, "\\'")}')">Donate Funds</button>
+          <button class="btn btn-sm btn-outline" onclick="openPledgeModal(${d.id})">Pledge Supplies</button>
+          <button class="btn btn-sm btn-ghost" onclick="navigateTo('disaster')">Emergency Hub →</button>
         </div>
       </div>
     `;
@@ -1971,8 +2195,9 @@ async function handleCreateRequirement(e) {
     });
     form.reset();
     closeModal('modal-create-requirement');
-    showToast('Care Center requirement published! Local donors and NGOs have been notified.', 'success');
+    showToast('Care Center requirement published! It is now live on the Home page.', 'success');
     loadRequirements();
+    loadHome();
     if (state.user && state.user.role === 'CONSUMER') loadConsumerDashboard();
   } catch (err) {
     showToast(err.message || 'Failed to create requirement', 'error');

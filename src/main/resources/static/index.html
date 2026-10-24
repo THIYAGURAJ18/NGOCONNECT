@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23154734'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
+  <!-- Official Razorpay Checkout Library -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 
@@ -22,7 +24,7 @@
   <!-- Main Navigation Bar -->
   <header class="navbar">
     <div class="navbar-inner">
-      <a href="javascript:void(0)" onclick="navigateTo('home')" class="navbar-brand">
+      <a href="javascript:void(0)" onclick="clickHome()" class="navbar-brand">
         <div class="brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
         <div>
           <span style="display:block; line-height: 1.1; font-weight: 800; font-size: 1.25rem;">Smart Donation</span>
@@ -31,11 +33,10 @@
       </a>
 
       <nav class="navbar-nav">
-        <a href="javascript:void(0)" data-view="home" class="active" onclick="navigateTo('home')">Home</a>
-        <a href="javascript:void(0)" data-view="donations" onclick="navigateTo('donations')">Browse Donations</a>
+        <a href="javascript:void(0)" data-view="home" class="active" onclick="clickHome()">Home</a>
         <a href="javascript:void(0)" data-view="requirements" onclick="navigateTo('requirements')">Requirements</a>
-        <a href="javascript:void(0)" data-view="campaigns" onclick="navigateTo('campaigns')">Campaigns</a>
         <a href="javascript:void(0)" data-view="disaster" onclick="navigateTo('disaster')">Disaster Relief</a>
+        <a href="javascript:void(0)" id="nav-donations-link" data-view="donations" class="hidden" onclick="navigateTo('donations')">Browse Donations</a>
         <a href="javascript:void(0)" id="nav-dashboard-link" data-view="dashboard" class="hidden" onclick="navigateTo('dashboard')">My Dashboard</a>
       </nav>
 
@@ -60,12 +61,11 @@
 
   <!-- Mobile Dropdown Navigation -->
   <div id="mobile-menu" class="mobile-menu hidden">
-    <a href="javascript:void(0)" onclick="navigateTo('home'); closeMobileMenu();" class="py-2">Home</a>
-    <a href="javascript:void(0)" onclick="navigateTo('donations'); closeMobileMenu();" class="py-2">Browse Donations</a>
-    <a href="javascript:void(0)" onclick="navigateTo('requirements'); closeMobileMenu();" class="py-2">Community Needs</a>
-    <a href="javascript:void(0)" onclick="navigateTo('campaigns'); closeMobileMenu();" class="py-2">Money Campaigns</a>
+    <a href="javascript:void(0)" onclick="clickHome(); closeMobileMenu();" class="py-2">Home</a>
+    <a href="javascript:void(0)" onclick="navigateTo('requirements'); closeMobileMenu();" class="py-2">Requirements</a>
     <a href="javascript:void(0)" onclick="navigateTo('disaster'); closeMobileMenu();" class="py-2">Disaster Relief</a>
-    <a href="javascript:void(0)" onclick="navigateTo('dashboard'); closeMobileMenu();" class="py-2">My Dashboard</a>
+    <a href="javascript:void(0)" id="mobile-nav-donations" onclick="navigateTo('donations'); closeMobileMenu();" class="py-2 hidden">Browse Donations</a>
+    <a href="javascript:void(0)" id="mobile-nav-dashboard" onclick="navigateTo('dashboard'); closeMobileMenu();" class="py-2 hidden">My Dashboard</a>
   </div>
 
   <main>
@@ -87,7 +87,7 @@
           </p>
           <div class="hero-actions">
             <button class="btn btn-lg btn-primary" onclick="openModal('modal-create-donation')">Post a Donation</button>
-            <button class="btn btn-lg btn-outline" style="color:white; border-color:rgba(255,255,255,0.4);" onclick="navigateTo('requirements')">View Needs</button>
+            <button class="btn btn-lg btn-outline" style="color: #154734; border: 2px solid #154734; font-weight: 700; background: #ffffff;" onclick="navigateTo('requirements')">View Needs →</button>
             <button class="btn btn-lg btn-danger" onclick="navigateTo('disaster')">Emergency Hub</button>
           </div>
 
@@ -123,49 +123,19 @@
         </div>
       </div>
 
-      <!-- Urgent Community Requirements Section -->
+      <!-- Care Center Urgent Requirements Section -->
       <div class="section container">
-        <div class="flex justify-between items-center mb-3">
+        <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
           <div>
-            <h2 class="section-title">Urgent Community Requirements</h2>
-            <p class="section-subtitle">High-priority requests from shelters and care centers.</p>
+            <div class="badge badge-success mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px; font-weight: 700; background: #e8f5e9; color: #154734;">CARE CENTERS & SHELTERS</div>
+            <h2 class="section-title" style="margin: 0;">Care Center Requirements</h2>
+            <p class="section-subtitle" style="margin-top: 4px;">Live urgent requirements requested directly by verified Care Centers, Orphanages, and Shelters.</p>
           </div>
-          <button class="btn btn-sm btn-outline" onclick="navigateTo('requirements')">View All →</button>
+          <div class="flex gap-2">
+            <button class="btn btn-sm btn-outline" style="color: #154734; border: 1.5px solid #154734; font-weight: 600; background: #ffffff;" onclick="navigateTo('requirements')">View All Requirements →</button>
+          </div>
         </div>
         <div id="home-urgent-reqs" class="grid-3">
-          <div class="page-loading"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- Latest Available Donations Section -->
-      <div class="section" style="background: var(--surface);">
-        <div class="container">
-          <div class="flex justify-between items-center mb-3">
-            <div>
-              <h2 class="section-title">Available Donations</h2>
-              <p class="section-subtitle">Items contributed by donors ready for NGO distribution.</p>
-            </div>
-            <div class="flex gap-1">
-              <button class="btn btn-sm btn-primary" onclick="openModal('modal-create-donation')">+ Post Donation</button>
-              <button class="btn btn-sm btn-outline" onclick="navigateTo('donations')">Browse All →</button>
-            </div>
-          </div>
-          <div id="home-recent-donations" class="grid-3">
-            <div class="page-loading"><div class="spinner"></div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Featured Campaigns Section -->
-      <div class="section container">
-        <div class="flex justify-between items-center mb-3">
-          <div>
-            <h2 class="section-title">Verified Fundraising Campaigns</h2>
-            <p class="section-subtitle">Support verified projects with instant mock-payment simulation.</p>
-          </div>
-          <button class="btn btn-sm btn-outline" onclick="navigateTo('campaigns')">All Campaigns →</button>
-        </div>
-        <div id="home-featured-campaigns" class="grid-3">
           <div class="page-loading"><div class="spinner"></div></div>
         </div>
       </div>
@@ -484,7 +454,10 @@
             <h3 style="margin: 0; font-size: 1.25rem;">Our Published Requirements</h3>
             <p class="text-muted text-xs" style="margin: 0;">Requirements posted by your care center are broadcasted to local donors and verified NGOs.</p>
           </div>
-          <button class="btn btn-primary" onclick="openCareCenterRequirementModal()">+ Post New Requirement</button>
+          <div class="flex gap-1 flex-wrap">
+            <button class="btn btn-outline" onclick="navigateTo('donations')">Browse Available Donations →</button>
+            <button class="btn btn-primary" onclick="openCareCenterRequirementModal()">+ Post New Requirement</button>
+          </div>
         </div>
 
         <div id="consumer-my-requirements">
@@ -893,23 +866,32 @@
     </div>
   </div>
 
-  <!-- Modal: Mock Payment Donation -->
+  <!-- Modal: Razorpay Payment Donation -->
   <div id="modal-donate-money" class="modal-overlay">
-    <div class="modal">
+    <div class="modal" style="max-width: 480px;">
       <div class="modal-header">
-        <h3 class="modal-title">Donate to Campaign</h3>
+        <div class="flex items-center gap-2">
+          <div style="width: 32px; height: 32px; background: #0c2340; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #528ff0; font-weight: 800; font-size: 1.1rem;">₹</div>
+          <div>
+            <h3 class="modal-title" style="margin-bottom: 2px;">Emergency & Relief Donation</h3>
+            <span class="text-xs" style="color: #64748b; font-weight: 600;">Razorpay Secure Payment Gateway</span>
+          </div>
+        </div>
         <button class="modal-close" onclick="closeModal('modal-donate-money')">×</button>
       </div>
       <div class="modal-body">
-        <div class="mock-payment-notice">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          <div><strong>MOCK PAYMENT SIMULATION:</strong> This is a secure prototype payment step (Razorpay ready). No real charge occurs.</div>
+        <div id="razorpay-status-badge" class="p-2 mb-3 text-xs flex items-center justify-between" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #166534;">
+          <div class="flex items-center gap-2">
+            <span style="width: 8px; height: 8px; background: #16a34a; border-radius: 50%; box-shadow: 0 0 6px #16a34a;"></span>
+            <span><strong>Razorpay Gateway Active:</strong> Direct account credit & verified signature</span>
+          </div>
+          <span class="text-xs font-bold" style="color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">256-Bit SSL</span>
         </div>
 
         <p class="text-sm font-semibold mb-2" id="donate-modal-campaign-title">Support Campaign</p>
 
-        <label class="form-label">Select Amount</label>
-        <div class="amount-grid">
+        <label class="form-label font-bold">Select Donation Amount</label>
+        <div class="amount-grid mb-2">
           <div class="amount-chip" data-amount="500" onclick="selectPresetAmount(500)">₹500</div>
           <div class="amount-chip selected" data-amount="1000" onclick="selectPresetAmount(1000)">₹1,000</div>
           <div class="amount-chip" data-amount="5000" onclick="selectPresetAmount(5000)">₹5,000</div>
@@ -917,22 +899,40 @@
 
         <input type="hidden" id="selected-donation-amount" value="1000" />
 
-        <div class="form-group">
+        <div class="form-group mb-2">
           <label class="form-label">Or Custom Amount (₹)</label>
           <input type="number" id="custom-donation-amount" class="form-control" placeholder="Enter other amount" oninput="handleCustomAmountChange(event)" />
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Your Name (for receipt)</label>
-          <input type="text" id="donation-donor-name" class="form-control" placeholder="Anand Kumar" />
+        <div class="form-row mb-2">
+          <div class="form-group mb-0">
+            <label class="form-label">Your Name <span class="required">*</span></label>
+            <input type="text" id="donation-donor-name" class="form-control" placeholder="Donor Name" required />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Mobile Number</label>
+            <input type="tel" id="donation-donor-phone" class="form-control" placeholder="9876543210" />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Words of Encouragement (Optional)</label>
-          <input type="text" id="donation-donor-note" class="form-control" placeholder="Keep up the noble work!" />
+        <div class="form-group mb-2">
+          <label class="form-label">Email Address (for Razorpay receipt)</label>
+          <input type="email" id="donation-donor-email" class="form-control" placeholder="donor@example.com" />
         </div>
 
-        <button id="btn-confirm-payment" class="btn btn-success btn-full" onclick="submitMockDonation()">Pay & Support (Mock Gateway)</button>
+        <div class="form-group mb-3">
+          <label class="form-label">Relief Note / Words of Encouragement (Optional)</label>
+          <input type="text" id="donation-donor-note" class="form-control" placeholder="Standing with the community!" />
+        </div>
+
+        <button id="btn-confirm-payment" class="btn btn-primary btn-full flex items-center justify-center gap-2" style="background: #154734; border-color: #154734; font-size: 0.95rem; font-weight: 700; padding: 12px;" onclick="initiateRazorpayPayment()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <span>Donate with Razorpay</span>
+        </button>
+
+        <div class="text-center mt-2" style="font-size: 0.72rem; color: #64748b;">
+          🔒 Secured by Razorpay. Supports UPI (GPay/PhonePe), NetBanking, Debit & Credit Cards.
+        </div>
       </div>
     </div>
   </div>

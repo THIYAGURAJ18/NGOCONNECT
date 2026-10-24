@@ -37,26 +37,21 @@ public class DataInitializer implements CommandLineRunner {
             }
         });
 
-        // Ensure all care centers have zero default posts. Care centers post requirements dynamically.
-        requirementPostRepository.deleteAll();
-
-        if (userRepository.count() > 0) {
-            log.info("Users already exist, skipping account seed.");
-            return;
+        if (userRepository.count() == 0) {
+            log.info("Seeding clean initial demo accounts...");
+            createUser("Admin", "admin@ngoconnect.com", "admin123", User.Role.ADMIN, "Chennai", true, null);
+            createUser("Ravi Kumar", "contributor@demo.com", "demo123", User.Role.CONTRIBUTOR, "Chennai", true, null);
+            createUser("Priya Sharma", "priya@demo.com", "demo123", User.Role.CONTRIBUTOR, "Mumbai", true, null);
+            createUser("HelpHand Foundation", "ngo@helphand.org", "demo123", User.Role.NGO, "Chennai", true, "HelpHand Foundation");
+            createUser("New Life NGO", "ngo2@newlife.org", "demo123", User.Role.NGO, "Mumbai", true, "New Life NGO");
+            createUser("Sunshine Orphanage", "consumer@orphanage.com", "demo123", User.Role.CONSUMER, "Chennai", true, "Sunshine Orphanage");
+            createUser("Elder Care Centre", "eldercare@demo.com", "demo123", User.Role.CONSUMER, "Mumbai", true, "Elder Care Centre");
+            log.info("Clean demo accounts initialized!");
         }
 
-        log.info("Seeding clean initial demo accounts (zero default posts)...");
-
-        // ── Initial Demo Users ─────────────────────────────────
-        createUser("Admin", "admin@ngoconnect.com", "admin123", User.Role.ADMIN, "Chennai", true, null);
-        createUser("Ravi Kumar", "contributor@demo.com", "demo123", User.Role.CONTRIBUTOR, "Chennai", true, null);
-        createUser("Priya Sharma", "priya@demo.com", "demo123", User.Role.CONTRIBUTOR, "Mumbai", true, null);
-        createUser("HelpHand Foundation", "ngo@helphand.org", "demo123", User.Role.NGO, "Chennai", true, "HelpHand Foundation");
-        createUser("New Life NGO", "ngo2@newlife.org", "demo123", User.Role.NGO, "Mumbai", true, "New Life NGO");
-        createUser("Sunshine Orphanage", "consumer@orphanage.com", "demo123", User.Role.CONSUMER, "Chennai", true, "Sunshine Orphanage");
-        createUser("Elder Care Centre", "eldercare@demo.com", "demo123", User.Role.CONSUMER, "Mumbai", true, "Elder Care Centre");
-
-        log.info("Clean demo accounts initialized with 0 default posts!");
+        // Ensure zero default requirement posts. Care Centers post requirements dynamically.
+        requirementPostRepository.deleteAll();
+        log.info("Zero default requirement posts. System ready for dynamic Care Center posts.");
     }
 
     private User createUser(String name, String email, String password, User.Role role,

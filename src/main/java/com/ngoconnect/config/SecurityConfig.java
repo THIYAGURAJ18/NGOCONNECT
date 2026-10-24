@@ -2,6 +2,7 @@ package com.ngoconnect.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -47,44 +48,44 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for REST API (session cookie is used for auth)
-            .csrf(AbstractHttpConfigurer::disable)
-            // Allow H2 console frames
-            .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
-            .authenticationProvider(authenticationProvider())
-            .authorizeHttpRequests(auth -> auth
-                // Public pages and static resources
-                .requestMatchers("/", "/index.html", "/login.html", "/signup.html").permitAll()
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
-                .requestMatchers("/*.html").permitAll()
-                // H2 console
-                .requestMatchers("/h2-console/**").permitAll()
-                // Auth endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                // Public read access
-                .requestMatchers(HttpMethod.GET, "/api/donations/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/requirements/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/campaigns/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/disaster/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/carecenters/**").permitAll()
-                // Admin only
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                // Everything else requires auth
-                .anyRequest().authenticated()
-            )
-            // Return 401 JSON instead of redirect for API calls
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.setContentType("application/json");
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("{\"status\":401,\"message\":\"Please log in to continue\"}");
-                })
-                .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.setContentType("application/json");
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.getWriter().write("{\"status\":403,\"message\":\"Access denied\"}");
-                })
-            );
+                // Disable CSRF for REST API (session cookie is used for auth)
+                .csrf(AbstractHttpConfigurer::disable)
+                // Allow H2 console frames
+                .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
+                .authenticationProvider(authenticationProvider())
+                .authorizeHttpRequests(auth -> auth
+                        // Public pages and static resources
+                        .requestMatchers("/", "/index.html", "/login.html", "/signup.html").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        .requestMatchers("/*.html").permitAll()
+                        // H2 console
+                        .requestMatchers("/h2-console/**").permitAll()
+                        // Auth endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // Public read access
+                        .requestMatchers(HttpMethod.GET, "/api/donations/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/requirements/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/campaigns/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/disaster/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/carecenters/**").permitAll()
+                        // Payment & Razorpay endpoints
+                        .requestMatchers("/api/payment/**").permitAll()
+                        // Admin only
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Everything else requires auth
+                        .anyRequest().authenticated())
+                // Return 401 JSON instead of redirect for API calls
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("{\"status\":401,\"message\":\"Please log in to continue\"}");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.getWriter().write("{\"status\":403,\"message\":\"Access denied\"}");
+                        }));
 
         return http.build();
     }

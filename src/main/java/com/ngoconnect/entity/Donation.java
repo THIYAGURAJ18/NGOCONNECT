@@ -29,12 +29,14 @@ public class Donation {
 
     private String note;
 
-    // MOCK payment reference - replace with Razorpay order ID in production
-    // TODO: Razorpay integration point - replace mockPaymentRef with razorpay_order_id
+    // Payment gateway details
     private String mockPaymentRef;
+    private String razorpayOrderId;
+    private String razorpayPaymentId;
+    private String razorpaySignature;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus = PaymentStatus.SUCCESS; // Mock: always success
+    private PaymentStatus paymentStatus = PaymentStatus.SUCCESS;
 
     @Column(updatable = false)
     private LocalDateTime donatedAt = LocalDateTime.now();
